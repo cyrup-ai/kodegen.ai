@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODEGEN.ᴀɪ - Blazing-Fast, Memory-Efficient MCP Tools for Claude Code</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fira Code', monospace;
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Hero section with Cyrup branding background */
+        .hero-section {
+            background: #051226;
+            padding: 0;
+            text-align: center;
+        }
+        
+        .cyrup-video {
+            width: 100%;
+            height: auto;
+            margin-bottom: 2rem;
+        }
+        
+        .hero-title {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: #18ca9b;
+            margin-bottom: 1rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: #CCCCCC;
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+        }
+        
+        /* Features section */
+        .features-section {
+            background: #0d1f3a;
+            padding: 2rem 0 0 0;
+            position: relative;
+            background-image: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255,255,255,0.02) 10px,
+                    rgba(255,255,255,0.02) 20px
+                );
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:last-child {
+            border-right: none;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #18ca9b;
+        }
+        
+        .feature-desc {
+            color: #CCCCCC;
+            line-height: 1.5;
+            text-align: left;
+        }
+        
+        .feature-desc a {
+            color: #ffffff;
+            text-decoration: underline;
+            transition: opacity 0.3s ease;
+        }
+        
+        .feature-desc a:hover {
+            opacity: 0.8;
+        }
+        
+        /* Dark header section */
+        .white-section {
+            background: linear-gradient(to bottom, #0a1929 0%, #051226 100%);
+            color: #ffffff;
+            padding: 0;
+            overflow: hidden;
+            text-align: center;
+            position: relative;
+        }
+        
+        .white-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(24, 202, 155, 0.2) 10%, 
+                rgba(24, 202, 155, 0.4) 50%, 
+                rgba(24, 202, 155, 0.2) 90%, 
+                transparent 100%);
+            box-shadow: 0 2px 8px rgba(24, 202, 155, 0.3);
+        }
+        
+        .kodegen-logo {
+            width: 100%;
+            height: auto;
+            margin: 0;
+            display: block;
+        }
+        
+        /* Installer section */
+        .installer-section {
+            text-align: center;
+            margin-top: 0;
+            padding: 2rem;
+        }
+        
+        .installer-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #18ca9b;
+            text-align: center;
+        }
+        
+        .platform-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .tab-button {
+            background: rgba(24, 202, 155, 0.1);
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            color: #18ca9b;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .tab-button:hover {
+            background: rgba(24, 202, 155, 0.2);
+            color: #ffffff;
+            border-color: #18ca9b;
+            transform: translateY(-2px);
+        }
+        
+        .tab-button.active {
+            background: #18ca9b;
+            color: #051226;
+            border-color: #18ca9b;
+        }
+        
+        .install-command {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem 4rem 1.5rem 1.5rem;
+            margin: 1.5rem auto;
+            max-width: 600px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: #18ca9b;
+            position: relative;
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            overflow-x: auto;
+            display: none;
+            text-align: left;
+            white-space: nowrap;
+            box-shadow: 0 8px 24px rgba(24, 202, 155, 0.1), 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .install-command.active {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #18ca9b;
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #15b188;
+            box-shadow: 0 4px 12px rgba(24, 202, 155, 0.3);
+        }
+        
+        .copy-btn:active {
+            transform: translateY(0);
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #18ca9b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .footer {
+            background: #051226;
+            padding: 2rem;
+            text-align: center;
+            color: #CCCCCC;
+        }
+        
+        .footer a {
+            color: #18ca9b;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer a:hover {
+            color: #c261c3;
+        }
+        
+        @media (max-width: 768px) {
+            .white-section {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .kodegen-logo {
+                float: none;
+                margin: 0 auto 2rem;
+                max-width: 300px;
+            }
+            
+            .installer-section {
+                float: none;
+                text-align: center;
+            }
+            
+            .installer-title {
+                text-align: center;
+            }
+            
+            .platform-tabs {
+                justify-content: center;
+            }
+            
+            .install-command {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feature-card {
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .feature-card:last-child {
+                border-bottom: none;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .installer-title {
+                font-size: 2rem;
+            }
+            
+            .platform-tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .tab-button {
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="white-section">
+        <img src="assets/banner.png" alt="KODEGEN.ᴀɪ" class="kodegen-logo">
+        
+        <div class="installer-section">
+            <div class="install-command" style="display: block;">
+                <button class="copy-btn" onclick="copyToClipboard(event)">COPY</button>
+                <code>curl -fsSL https://kodegen.ai/install | sh</code>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="features-section">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-database"></i></div>
+                <div class="feature-title">SURREAL MEMORY</div>
+                <div class="feature-desc">A best-in-class, context-augmentation memory system (vector & graph relationships) backed by <a href="https://surrealdb.com/" target="_blank">SurrealDB</a>, with global and project local retention capabilities.  Full <a href="https://obsidian.md/" target="_blank">Obsidian</a> knowledge-base support so you can see exactly what your agents have in context.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-lock"></i></div>
+                <div class="feature-title">CRYYPT</div>
+                <div class="feature-desc"><a href="https://en.wikipedia.org/wiki/Post-quantum_cryptography" target="_blank">Post-quantum</a>, military-grade encryption vault and secret-store in pure Rust, allowing agents to execute security sensitive tasks without ever knowing your passwords. Zero-knowledge architecture with timing-based access controls for ultimate security.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-microphone"></i></div>
+                <div class="feature-title">FLUENT VOICE</div>
+                <div class="feature-desc">A pure-Rust AI voice system with native wake word, <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank">fast-whisper</a> STT that dictates and <em>predicts</em> what you're about to say. Pure-Rust Candle TTS port of <a href="https://diaai.org/" target="_blank">Dia Voice</a> for expressive voice narration and conversation capabilities.</div>
+            </div>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+                <div class="feature-title">LOCAL AI</div>
+                <div class="feature-desc">KODEGEN.ᴀɪ auto-configures best-in-class local AI agents (<a href="https://arxiv.org/abs/2407.01502" target="_blank">"ambient agents"</a>) that you never interface with but work behind the scenes, assisting your "primetime ai" by auto-optimizing prompts, de-composing tasks, procuring documentation, memorizing key facts and preferences.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-code"></i></div>
+                <div class="feature-title">CODE GENERATION</div>
+                <div class="feature-desc">KODEGEN.ᴀɪ is packed with best-in-class reasoning, thinking, planning and autocoding AI tools. Built-in deep reasoning chains, <a href="https://en.wikipedia.org/wiki/Monte_Carlo_tree_search" target="_blank">MCTS (Monte Carlo Tree Search)</a>, deep research agents, and specialized code generation models that understand your entire codebase context.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon" style="font-family: 'Fira Code', monospace; font-weight: 600;">Ø</div>
+                <div class="feature-title">ZERO FRICTION</div>
+                <div class="feature-desc">Use the tools you love. KODEGEN.ᴀɪ is immediately available in <a href="https://claude.ai/desktop" target="_blank">Claude Desktop</a>, <a href="https://claude.ai/code" target="_blank">Claude Code</a>, <a href="https://codeium.com/windsurf" target="_blank">Windsurf</a>, <a href="https://cursor.sh/" target="_blank">Cursor.AI</a>, <a href="https://code.visualstudio.com/" target="_blank">VSCode</a>, <a href="https://zed.dev/" target="_blank">Zed</a>, <a href="https://raycast.com/" target="_blank">Raycast</a>, <a href="https://github.com/cline/cline" target="_blank">Cline</a>, <a href="https://github.com/RooVetGit/Roo-Cline" target="_blank">Roo Code</a>, and thousands of others in a single click. No configuration required. All Operating Systems supported.</div>
+            </div>
+        </div>
+    </div>
+    
+        <div class="hero-section">
+        <video autoplay muted loop playsinline class="cyrup-video">
+            <source src="assets/cyrup_oceanic.mp4" type="video/mp4">
+        </video>
+    </div>
+    
+        <div class="footer">
+        <p>
+            <a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub</a> •
+            <a href="https://kodegen.ai/docs/" target="_blank">Documentation</a> •
+            <a href="https://discord.gg/cyrup-ai" target="_blank">Community</a>
+        </p>
+        <p style="margin-top: 1rem;">
+            Made with <i class="fas fa-heart"></i> by <a href="https://github.com/cyrup-ai" target="_blank">Cyrup.ai</a>
+        </p>
+    </div>
+
+    <script>
+        function copyToClipboard(event) {
+            const command = 'curl -fsSL https://kodegen.ai/install | sh';
+            
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(command).then(() => {
+                    showToast('Command copied to clipboard!');
+                    updateButton(event.target);
+                }).catch(err => {
+                    console.error('Clipboard API failed: ', err);
+                    fallbackCopy(command, event.target);
+                });
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                fallbackCopy(command, event.target);
+            }
+        }
+        
+        function fallbackCopy(text, btn) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Command copied to clipboard!');
+                updateButton(btn);
+            } catch (err) {
+                console.error('Fallback copy failed: ', err);
+                showToast('Please copy manually: curl -fsSL https://kodegen.ai/install | sh');
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        function updateButton(btn) {
+            const originalText = btn.textContent;
+            btn.textContent = 'COPIED!';
+            btn.style.background = '#15b188';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 1500);
+        }
+        
+        function showToast(message) {
+            // Remove existing toast if any
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            // Create new toast
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // Auto-select command on click
+        document.querySelectorAll('.install-command code').forEach(code => {
+            code.addEventListener('click', function() {
+                const range = document.createRange();
+                range.selectNode(this);
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Universal KODEGEN.ᴀɪ installer - auto-detects OS and runs appropriate installer
+
+set -e
+
+# Detect OS
+if [ -n "$WINDIR" ] || [ -n "$SYSTEMROOT" ]; then
+    # Windows detected - download and run PowerShell installer
+    echo "Windows detected. Downloading PowerShell installer..."
+    powershell -Command "iex (iwr -UseBasicParsing https://kodegen.ai/install.ps1).Content"
+else
+    # Unix-like system (macOS, Linux, etc.) - run bash installer
+    echo "Unix-like system detected. Running installer..."
+    curl -fsSL https://kodegen.ai/install.sh | bash
+fi
