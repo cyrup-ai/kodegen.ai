@@ -167,7 +167,7 @@ clone_repository() {
 # Install the project using cargo
 install_project() {
     info "Installing KODEGEN.ᴀɪ (this may take a few minutes)..."
-    
+
     # Install the binary to ~/.cargo/bin
     if cargo install --path .; then
         success "KODEGEN.ᴀɪ installed successfully!"
@@ -177,35 +177,50 @@ install_project() {
     fi
 }
 
+# Auto-configure all detected MCP clients
+auto_configure_clients() {
+    info "Auto-configuring detected MCP clients..."
+
+    # Source cargo environment to ensure kodegen is in PATH
+    if [[ -f "$HOME/.cargo/env" ]]; then
+        # shellcheck source=/dev/null
+        source "$HOME/.cargo/env"
+    fi
+
+    # Run kodegen install
+    if kodegen install; then
+        success "MCP clients configured automatically!"
+    else
+        warn "Auto-configuration failed, you can run 'kodegen install' manually later"
+    fi
+}
+
 # Main installation process
 main() {
     info "🍯 KODEGEN.ᴀɪ One-Line Installer"
     info "=========================================="
-    
+
     detect_os
     detect_platform
     install_deps
     install_rust
     clone_repository
     install_project
-    
+    auto_configure_clients
+
     info "=========================================="
     success "Installation completed! 🚀"
     info ""
     info "Binary installed to: ~/.cargo/bin/kodegen"
     info ""
-    info "Next steps:"
-    info "  1. Verify installation: kodegen --version"
-    info "  2. Configure Claude Desktop to use the MCP server"
+    info "Your MCP clients have been automatically configured!"
+    info "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
     info ""
-    info "Configuration for Claude Desktop (~/.config/claude/claude_desktop_config.json):"
-    info '  {'
-    info '    "mcpServers": {'
-    info '      "kodegen": {'
-    info '        "command": "kodegen"'
-    info '      }'
-    info '    }'
-    info '  }'
+    info "Next steps:"
+    info "  1. Restart your editor/IDE"
+    info "  2. Start coding with KODEGEN.ᴀɪ!"
+    info ""
+    info "Manual configuration (if needed): kodegen install"
     info ""
     success "Welcome to KODEGEN.ᴀɪ! 🍯"
 }

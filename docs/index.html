@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KODEGEN.ᴀɪ - Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fira Code', monospace;
+            color: #ffffff;
+            background: #051226;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(to bottom, #0a1929 0%, #051226 100%);
+            padding: 0;
+            text-align: center;
+            border-bottom: 2px solid rgba(24, 202, 155, 0.3);
+        }
+
+        .kodegen-logo {
+            width: 100%;
+            height: auto;
+            margin: 0;
+            display: block;
+        }
+
+        .header-content {
+            padding: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #18ca9b;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #CCCCCC;
+            font-size: 0.9rem;
+        }
+
+        .header a {
+            color: #18ca9b;
+            text-decoration: none;
+        }
+
+        .header a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 3rem;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .sidebar nav {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(24, 202, 155, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .sidebar h3 {
+            color: #18ca9b;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 0.75rem;
+        }
+
+        .sidebar a {
+            color: #CCCCCC;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.3s ease;
+        }
+
+        .sidebar a:hover {
+            color: #18ca9b;
+        }
+
+        .content {
+            min-width: 0;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+        }
+
+        .section h2 {
+            color: #18ca9b;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid rgba(24, 202, 155, 0.3);
+        }
+
+        .section h3 {
+            color: #18ca9b;
+            font-size: 1.3rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .section h4 {
+            color: #18ca9b;
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .section p {
+            color: #CCCCCC;
+            margin-bottom: 1rem;
+        }
+
+        .section ul, .section ol {
+            color: #CCCCCC;
+            margin-left: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .section li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            color: #18ca9b;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            display: block;
+            white-space: pre;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(24, 202, 155, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(24, 202, 155, 0.4);
+        }
+
+        .tool-card h4 {
+            color: #18ca9b;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-card p {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-card .params {
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(24, 202, 155, 0.2);
+            color: #18ca9b;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer {
+            background: #051226;
+            padding: 2rem;
+            text-align: center;
+            color: #CCCCCC;
+            border-top: 2px solid rgba(24, 202, 155, 0.3);
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #18ca9b;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .section h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="../assets/banner.png" alt="KODEGEN.ᴀɪ" class="kodegen-logo">
+        <div class="header-content">
+            <p>Documentation • <a href="../index.html">← Back to Home</a></p>
+        </div>
+    </div>
+
+    <div class="container">
+        <aside class="sidebar">
+            <nav>
+                <h3>Contents</h3>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#installation">Installation</a></li>
+                    <li><a href="#configuration">Configuration</a></li>
+                    <li><a href="#advanced">Advanced Users</a></li>
+                    <li><a href="#tools">Tool Reference</a></li>
+                    <li><a href="#examples">Examples</a></li>
+                    <li><a href="#contributing">Contributing</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <section id="overview" class="section">
+                <h2>Overview</h2>
+                <p>KODEGEN.ᴀɪ is a blazing-fast Rust-native MCP Server (Model Context Protocol) with 33 elite auto-coding tools designed for professional, autonomous code generation and predictable high-quality results.</p>
+
+                <p>Every tool has been thoughtfully hyper-optimized for:</p>
+                <ul>
+                    <li><strong>Speed</strong> - Code it faster with native Rust performance</li>
+                    <li><strong>Context Efficiency</strong> - Code it cheaper with minimal token usage</li>
+                    <li><strong>Agent-First Design</strong> - Built for AI workflows, not humans</li>
+                </ul>
+
+                <h3>Key Features</h3>
+                <div class="tool-grid">
+                    <div class="tool-card">
+                        <h4>🗂️ Warp Speed Mods</h4>
+                        <p>14 filesystem tools optimized for coding workflows with atomic operations and concurrent traversal.</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>💻 Terminal as a Tool</h4>
+                        <p>Full VT100 pseudoterminal sessions with smart state detection and real-time output streaming.</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>🧠 Reasoning Chains</h4>
+                        <p>Stateful thinking sessions with branching, revision, and unlimited context across extended problem-solving.</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>🔮 Agents with Agents</h4>
+                        <p>N-depth agent delegation with full prompt control for hierarchical, coordinated agent pyramids.</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>📊 LLM Observability</h4>
+                        <p>Track tool usage, analyze patterns, and optimize workflows with built-in introspection.</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>📝 Agents Manage Prompts</h4>
+                        <p>Create and manage reusable prompt templates with Jinja2 rendering and schema validation.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="installation" class="section">
+                <h2>Installation</h2>
+
+                <h3>Quick Install</h3>
+                <p>Install KODEGEN.ᴀɪ with a single command:</p>
+                <pre><code>curl -fsSL https://kodegen.ai/install | sh</code></pre>
+
+                <h3>Automatic Editor Configuration</h3>
+                <p>After installation, automatically configure all detected MCP clients with one command:</p>
+                <pre><code>kodegen install</code></pre>
+
+                <p>This will scan your system and automatically configure:</p>
+                <div class="tool-grid">
+                    <div class="tool-card">
+                        <h4>✅ Claude Desktop</h4>
+                        <p>Auto-configures <code>claude_desktop_config.json</code></p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>✅ Windsurf</h4>
+                        <p>Auto-configures Windsurf MCP settings</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>✅ Cursor</h4>
+                        <p>Auto-configures Cursor AI settings</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>✅ Zed</h4>
+                        <p>Auto-configures Zed editor settings</p>
+                    </div>
+                    <div class="tool-card">
+                        <h4>✅ Roo Code</h4>
+                        <p>Auto-configures Roo Code settings</p>
+                    </div>
+                </div>
+
+                <h4>What it does:</h4>
+                <ul>
+                    <li>🔍 Scans for installed MCP-compatible editors</li>
+                    <li>📝 Creates config files if they don't exist</li>
+                    <li>⚡ Injects KODEGEN into existing configs</li>
+                    <li>💾 Creates backups before modification</li>
+                    <li>✅ Reports results with detailed status</li>
+                </ul>
+
+                <h3>Manual Installation</h3>
+                <p>For manual installation or to build from source:</p>
+                <pre><code># Clone the repository
+git clone https://github.com/cyrup-ai/kodegen.git
+cd kodegen
+
+# Build with Cargo
+cargo build --release
+
+# Install to system
+cargo install --path .</code></pre>
+
+                <h3>Manual MCP Client Configuration</h3>
+
+                <h4>Claude Desktop (Manual)</h4>
+                <p>Add to your <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+                <pre><code>{
+  "mcpServers": {
+    "kodegen": {
+      "command": "kodegen"
+    }
+  }
+}</code></pre>
+
+                <h4>Other MCP Clients</h4>
+                <p>KODEGEN.ᴀɪ works with any MCP-compatible client. Use <code>kodegen install</code> for automatic configuration, or manually add the server config to:</p>
+                <ul>
+                    <li>Claude Code</li>
+                    <li>Continue</li>
+                    <li>Cline</li>
+                    <li>VSCode MCP extension</li>
+                    <li>And thousands more...</li>
+                </ul>
+            </section>
+
+            <section id="configuration" class="section">
+                <h2>Configuration</h2>
+
+                <h3>Runtime Tool Selection</h3>
+                <p>Control which tools are active at runtime by passing arguments to the kodegen binary in your MCP client configuration:</p>
+
+                <h4>Method 1: Comma-Separated List</h4>
+                <pre><code>{
+  "mcpServers": {
+    "kodegen": {
+      "command": "kodegen",
+      "args": ["--tools", "filesystem,terminal,sequential_thinking"]
+    }
+  }
+}</code></pre>
+
+                <h4>Method 2: Multiple Flags</h4>
+                <pre><code>{
+  "mcpServers": {
+    "kodegen": {
+      "command": "kodegen",
+      "args": [
+        "--tool", "filesystem",
+        "--tool", "terminal",
+        "--tool", "sequential_thinking"
+      ]
+    }
+  }
+}</code></pre>
+
+                <h4>Available Tool Categories</h4>
+                <ul>
+                    <li><code>filesystem</code> - 14 file operation tools</li>
+                    <li><code>terminal</code> - 5 terminal/process management tools</li>
+                    <li><code>process</code> - 2 process management tools</li>
+                    <li><code>sequential_thinking</code> - 1 reasoning chain tool</li>
+                    <li><code>claude_agent</code> - 5 sub-agent orchestration tools</li>
+                    <li><code>prompt</code> - 4 prompt template management tools</li>
+                    <li><code>introspection</code> - 2 observability tools</li>
+                </ul>
+
+                <p>If no arguments are provided, all compiled tool categories are enabled by default.</p>
+
+                <h3>Runtime Configuration</h3>
+                <p>AI agents can modify configuration at runtime using the <code>set_config_value</code> tool:</p>
+                <pre><code>set_config_value({
+  "key": "file_read_line_limit",
+  "value": 5000
+})</code></pre>
+
+                <h3>Available Configuration Options</h3>
+
+                <h4>File Operations</h4>
+                <ul>
+                    <li><code>file_read_line_limit</code> - Maximum lines to read per file (default: 2000)</li>
+                    <li><code>file_write_line_limit</code> - Maximum lines to write per operation (default: 1000)</li>
+                    <li><code>fuzzy_search_threshold</code> - Similarity threshold for fuzzy matching (default: 0.8)</li>
+                </ul>
+
+                <h4>Security</h4>
+                <ul>
+                    <li><code>blocked_commands</code> - List of commands to block in terminal sessions</li>
+                    <li><code>allowed_paths</code> - Whitelist of paths for file operations</li>
+                </ul>
+
+                <h4>Performance</h4>
+                <ul>
+                    <li><code>max_search_results</code> - Maximum search results to return (default: 100)</li>
+                    <li><code>terminal_timeout</code> - Terminal command timeout in seconds (default: 300)</li>
+                </ul>
+            </section>
+
+            <section id="advanced" class="section">
+                <h2>Advanced Users</h2>
+
+                <h3>Custom Builds with Feature Gates</h3>
+                <p>Create hyper-optimized binaries by compiling only the tools you need. KODEGEN uses Cargo feature gates to enable/disable tool categories at compile time, resulting in smaller binaries and faster startup.</p>
+
+                <h4>Building with Specific Features</h4>
+                <p>By default, all features are enabled. To build a minimal binary with only specific tools:</p>
+
+                <pre><code># Build with only filesystem and terminal tools
+cargo build --release \
+  --no-default-features \
+  --features "filesystem,terminal"
+
+# Install custom build
+cargo install --path . \
+  --no-default-features \
+  --features "filesystem,terminal,sequential_thinking"</code></pre>
+
+                <h4>Available Feature Flags</h4>
+                <div class="tool-grid">
+                    <div class="tool-card">
+                        <h4>filesystem</h4>
+                        <p>14 tools for file operations, searching, and editing</p>
+                        <span class="badge">~800KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>terminal</h4>
+                        <p>5 tools for terminal sessions and command execution</p>
+                        <span class="badge">~300KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>sequential_thinking</h4>
+                        <p>1 tool for stateful reasoning chains</p>
+                        <span class="badge">~150KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>claude_agent</h4>
+                        <p>5 tools for sub-agent orchestration</p>
+                        <span class="badge">~400KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>prompt</h4>
+                        <p>4 tools for prompt template management</p>
+                        <span class="badge">~250KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>introspection</h4>
+                        <p>2 tools for usage tracking and observability</p>
+                        <span class="badge">~100KB</span>
+                    </div>
+                    <div class="tool-card">
+                        <h4>process</h4>
+                        <p>2 tools for process management</p>
+                        <span class="badge">~150KB</span>
+                    </div>
+                </div>
+
+                <h4>Common Build Profiles</h4>
+
+                <h5>Minimal Coding Assistant (Filesystem + Terminal)</h5>
+                <pre><code>cargo install --path . \
+  --no-default-features \
+  --features "filesystem,terminal"
+
+# Smallest binary: ~1.2MB (vs 3.5MB full build)
+# Perfect for: Basic file operations and command execution</code></pre>
+
+                <h5>Thinking Agent (Filesystem + Sequential Thinking + Agents)</h5>
+                <pre><code>cargo install --path . \
+  --no-default-features \
+  --features "filesystem,sequential_thinking,claude_agent"
+
+# Medium binary: ~1.8MB
+# Perfect for: Research, analysis, and multi-step reasoning</code></pre>
+
+                <h5>Full-Featured Build (Default)</h5>
+                <pre><code>cargo install --path .
+
+# Complete binary: ~3.5MB
+# Includes: All 33 tools across 7 categories</code></pre>
+
+                <h3>Combining Compile-Time and Runtime Filtering</h3>
+                <p>For maximum optimization, combine feature gates with runtime arguments:</p>
+
+                <pre><code># 1. Build with only filesystem and terminal features
+cargo install --path . \
+  --no-default-features \
+  --features "filesystem,terminal"
+
+# 2. Configure MCP client to use only filesystem tools
+{
+  "mcpServers": {
+    "kodegen": {
+      "command": "kodegen",
+      "args": ["--tool", "filesystem"]
+    }
+  }
+}
+
+# Result: Smallest binary + fastest startup + minimal memory footprint</code></pre>
+
+                <h3>Checking Available Tools</h3>
+                <p>List all tool categories compiled into your binary:</p>
+                <pre><code>kodegen --list-categories</code></pre>
+
+                <p>This shows which features were enabled at compile time.</p>
+
+                <h3>Performance Comparison</h3>
+                <table style="width: 100%; border-collapse: collapse; margin: 2rem 0;">
+                    <thead style="background: rgba(24, 202, 155, 0.2);">
+                        <tr>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(24, 202, 155, 0.3);">Build Configuration</th>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(24, 202, 155, 0.3);">Binary Size</th>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(24, 202, 155, 0.3);">Startup Time</th>
+                            <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(24, 202, 155, 0.3);">Memory Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background: rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">Full Build (All Features)</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~3.5MB</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~25ms</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~8MB</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">Minimal (filesystem + terminal)</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~1.2MB</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~12ms</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~4MB</td>
+                        </tr>
+                        <tr style="background: rgba(255, 255, 255, 0.05);">
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">Filesystem Only</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~900KB</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~8ms</td>
+                            <td style="padding: 0.75rem; border: 1px solid rgba(24, 202, 155, 0.2);">~3MB</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><em>Note: Measurements are approximate and may vary by platform and usage patterns.</em></p>
+            </section>
+
+            <section id="tools" class="section">
+                <h2>Tool Reference</h2>
+
+                <h3>Filesystem Tools (14 tools)</h3>
+
+                <h4><code>read_file</code></h4>
+                <p>Read file contents with offset/length support for massive files.</p>
+                <pre><code>read_file({
+  "file_path": "src/main.rs",
+  "offset": 0,
+  "limit": 100
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h4><code>write_file</code></h4>
+                <p>Write or append content to files with atomic operations.</p>
+                <pre><code>write_file({
+  "file_path": "output.txt",
+  "content": "Hello, world!",
+  "append": false
+})</code></pre>
+                <span class="badge">Destructive</span>
+
+                <h4><code>edit_block</code></h4>
+                <p>Surgical text replacement with automatic fuzzy matching.</p>
+                <pre><code>edit_block({
+  "file_path": "src/main.rs",
+  "old_string": "fn process_data",
+  "new_string": "async fn process_data"
+})</code></pre>
+                <span class="badge">Destructive</span>
+
+                <h4><code>start_search</code></h4>
+                <p>Start streaming search across codebase with regex support.</p>
+                <pre><code>start_search({
+  "pattern": "TODO:",
+  "path": ".",
+  "regex": false
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h4><code>list_directory</code></h4>
+                <p>List directory contents with metadata.</p>
+                <pre><code>list_directory({
+  "path": "src/"
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <p><em>And 9 more filesystem tools: <code>read_multiple_files</code>, <code>move_file</code>, <code>delete_file</code>, <code>delete_directory</code>, <code>create_directory</code>, <code>get_file_info</code>, <code>get_more_search_results</code>, <code>stop_search</code>, <code>list_searches</code></em></p>
+
+                <h3>Terminal Tools (5 tools)</h3>
+
+                <h4><code>start_terminal_command</code></h4>
+                <p>Spawn full VT100 pseudoterminal session.</p>
+                <pre><code>start_terminal_command({
+  "command": "cargo build --release",
+  "working_directory": "."
+})</code></pre>
+                <span class="badge">Destructive</span>
+
+                <h4><code>read_terminal_output</code></h4>
+                <p>Read real-time output from terminal session.</p>
+                <pre><code>read_terminal_output({
+  "session_id": "abc123"
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <p><em>And 3 more terminal tools: <code>send_terminal_input</code>, <code>stop_terminal_command</code>, <code>list_terminal_commands</code></em></p>
+
+                <h3>Sequential Thinking (1 tool)</h3>
+
+                <h4><code>sequential_thinking</code></h4>
+                <p>Break down complex problems with stateful reasoning sessions.</p>
+                <pre><code>sequential_thinking({
+  "thought": "Analyzing the architecture patterns...",
+  "thought_number": 1,
+  "session_id": "planning-session-1"
+})</code></pre>
+                <span class="badge">Stateful</span>
+
+                <h3>Agent Orchestration (5 tools)</h3>
+
+                <h4><code>spawn_claude_agent</code></h4>
+                <p>Spawn specialized Claude sub-agents for delegation.</p>
+                <pre><code>spawn_claude_agent({
+  "task": "Research API design patterns for Rust",
+  "prompt_template": "research_agent"
+})</code></pre>
+                <span class="badge">Agent-to-Agent</span>
+
+                <h4><code>read_claude_agent_output</code></h4>
+                <p>Stream output from sub-agent sessions.</p>
+                <pre><code>read_claude_agent_output({
+  "agent_id": "agent-123"
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <p><em>And 3 more agent tools: <code>send_claude_agent_prompt</code>, <code>terminate_claude_agent_session</code>, <code>list_claude_agents</code></em></p>
+
+                <h3>Prompt Management (4 tools)</h3>
+
+                <h4><code>add_prompt</code></h4>
+                <p>Create reusable prompt templates with Jinja2.</p>
+                <pre><code>add_prompt({
+  "name": "code_review",
+  "template": "Review this code: {{ code }}",
+  "description": "Code review prompt"
+})</code></pre>
+                <span class="badge">Idempotent</span>
+
+                <p><em>And 3 more prompt tools: <code>edit_prompt</code>, <code>delete_prompt</code>, <code>get_prompt</code></em></p>
+
+                <h3>Introspection (2 tools)</h3>
+
+                <h4><code>get_usage_stats</code></h4>
+                <p>Track tool usage and performance metrics.</p>
+                <pre><code>get_usage_stats({})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h4><code>get_recent_tool_calls</code></h4>
+                <p>Inspect recent tool invocations with full arguments.</p>
+                <pre><code>get_recent_tool_calls({
+  "limit": 10
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h3>Process Management (2 tools)</h3>
+
+                <h4><code>list_processes</code></h4>
+                <p>List system processes with filtering.</p>
+                <pre><code>list_processes({
+  "filter": "node"
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h4><code>kill_process</code></h4>
+                <p>Terminate processes by PID.</p>
+                <pre><code>kill_process({
+  "pid": 12345
+})</code></pre>
+                <span class="badge">Destructive</span>
+
+                <h3>Configuration (2 tools)</h3>
+
+                <h4><code>get_config</code></h4>
+                <p>Retrieve current configuration values.</p>
+                <pre><code>get_config({
+  "key": "file_read_line_limit"
+})</code></pre>
+                <span class="badge">Read-only</span>
+
+                <h4><code>set_config_value</code></h4>
+                <p>Modify configuration at runtime.</p>
+                <pre><code>set_config_value({
+  "key": "fuzzy_search_threshold",
+  "value": 0.9
+})</code></pre>
+                <span class="badge">Idempotent</span>
+            </section>
+
+            <section id="examples" class="section">
+                <h2>Examples</h2>
+
+                <h3>Complete Workflow: Refactoring a Rust Project</h3>
+                <pre><code>// 1. Search for function to refactor
+start_search({
+  "pattern": "fn process_data",
+  "path": "src/"
+})
+
+// 2. Read the file
+read_file({
+  "file_path": "src/processor.rs"
+})
+
+// 3. Make the function async
+edit_block({
+  "file_path": "src/processor.rs",
+  "old_string": "fn process_data(input: &str) -> Result<Data>",
+  "new_string": "async fn process_data(input: &str) -> Result<Data>"
+})
+
+// 4. Run tests
+start_terminal_command({
+  "command": "cargo test"
+})
+
+// 5. Check output
+read_terminal_output({
+  "session_id": "terminal-123"
+})</code></pre>
+
+                <h3>Multi-Agent Research</h3>
+                <pre><code>// Spawn a research agent
+spawn_claude_agent({
+  "task": "Research best practices for error handling in Rust async code"
+})
+
+// Spawn another for code generation
+spawn_claude_agent({
+  "task": "Generate example error handling code based on research findings"
+})
+
+// Monitor agents
+list_claude_agents({})
+
+// Read results
+read_claude_agent_output({
+  "agent_id": "agent-001"
+})</code></pre>
+
+                <h3>Sequential Thinking for Architecture Planning</h3>
+                <pre><code>// Start thinking session
+sequential_thinking({
+  "session_id": "architecture-planning",
+  "thought": "Need to design a scalable API layer",
+  "thought_number": 1
+})
+
+// Branch to explore alternatives
+sequential_thinking({
+  "session_id": "architecture-planning",
+  "thought": "Option A: REST API with versioning",
+  "thought_number": 2,
+  "branch_from": 1
+})
+
+sequential_thinking({
+  "session_id": "architecture-planning",
+  "thought": "Option B: GraphQL with federation",
+  "thought_number": 3,
+  "branch_from": 1
+})
+
+// Revise earlier thinking
+sequential_thinking({
+  "session_id": "architecture-planning",
+  "thought": "Actually, REST is better for our use case due to caching",
+  "thought_number": 4,
+  "revises": 2
+})</code></pre>
+            </section>
+
+            <section id="contributing" class="section">
+                <h2>Contributing</h2>
+
+                <p>KODEGEN.ᴀɪ is open source and welcomes contributions!</p>
+
+                <h3>Getting Started</h3>
+                <ol>
+                    <li>Fork the repository on <a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub</a></li>
+                    <li>Clone your fork: <code>git clone https://github.com/YOUR_USERNAME/kodegen.git</code></li>
+                    <li>Create a feature branch: <code>git checkout -b feature/amazing-tool</code></li>
+                    <li>Make your changes</li>
+                    <li>Run tests: <code>cargo test</code></li>
+                    <li>Commit and push: <code>git push origin feature/amazing-tool</code></li>
+                    <li>Open a Pull Request</li>
+                </ol>
+
+                <h3>Development Guidelines</h3>
+                <ul>
+                    <li>All tools must implement the <code>Tool</code> trait</li>
+                    <li>Follow the pattern in <code>packages/filesystem/src/read_file.rs</code></li>
+                    <li>Write comprehensive prompts for LLM learning</li>
+                    <li>Add JsonSchema to all Args types</li>
+                    <li>Update documentation when adding features</li>
+                </ul>
+
+                <h3>Community</h3>
+                <p>Join the discussion:</p>
+                <ul>
+                    <li><a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub Repository</a></li>
+                    <li><a href="https://github.com/cyrup-ai" target="_blank">Cyrup.ai Organization</a></li>
+                </ul>
+            </section>
+        </main>
+    </div>
+
+    <div class="footer">
+        <p>
+            <a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub</a> •
+            <a href="../index.html">Home</a> •
+            <a href="https://github.com/cyrup-ai" target="_blank">Cyrup.ai</a>
+        </p>
+        <p style="margin-top: 1rem;">
+            Made with (love) by <a href="https://www.linkedin.com/in/davemaple/" target="_blank">David Maple</a>
+        </p>
+    </div>
+</body>
+</html>

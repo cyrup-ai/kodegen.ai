@@ -62,8 +62,8 @@
                     45deg,
                     transparent,
                     transparent 10px,
-                    rgba(255,255,255,0.02) 10px,
-                    rgba(255,255,255,0.02) 20px
+                    rgba(255,255,255,0.00625) 10px,
+                    rgba(255,255,255,0.00625) 20px
                 );
         }
         
@@ -136,11 +136,11 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                rgba(24, 202, 155, 0.2) 10%, 
-                rgba(24, 202, 155, 0.4) 50%, 
-                rgba(24, 202, 155, 0.2) 90%, 
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(24, 202, 155, 0.2) 10%,
+                rgba(24, 202, 155, 0.4) 50%,
+                rgba(24, 202, 155, 0.2) 90%,
                 transparent 100%);
             box-shadow: 0 2px 8px rgba(24, 202, 155, 0.3);
         }
@@ -290,65 +290,213 @@
         .footer a:hover {
             color: #c261c3;
         }
-        
+
+        /* Product intro section */
+        .product-intro {
+            background: #051226;
+            padding: 4rem 2rem;
+            position: relative;
+            background-image:
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 40px,
+                    rgba(24, 202, 155, 0.02) 40px,
+                    rgba(24, 202, 155, 0.02) 41px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 40px,
+                    rgba(24, 202, 155, 0.02) 40px,
+                    rgba(24, 202, 155, 0.02) 41px
+                );
+        }
+
+        .intro-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .intro-code {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            box-shadow: 0 8px 24px rgba(24, 202, 155, 0.15);
+        }
+
+        .intro-code code {
+            color: #18ca9b;
+        }
+
+        .intro-content h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #18ca9b;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .intro-content p {
+            font-size: 1.1rem;
+            color: #CCCCCC;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .intro-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(24, 202, 155, 0.1);
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            border-radius: 8px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            background: rgba(24, 202, 155, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(24, 202, 155, 0.2);
+        }
+
+        .stat-box h3 {
+            font-size: 1.4rem;
+            color: #18ca9b;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .stat-box p {
+            font-size: 0.85rem;
+            color: #999;
+            margin: 0;
+            line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
             .white-section {
                 flex-direction: column;
                 text-align: center;
             }
-            
+
             .kodegen-logo {
                 float: none;
                 margin: 0 auto 2rem;
-                max-width: 300px;
+                max-width: 100%;
+                width: 100%;
             }
-            
+
             .installer-section {
                 float: none;
                 text-align: center;
             }
-            
+
             .installer-title {
                 text-align: center;
             }
-            
+
             .platform-tabs {
                 justify-content: center;
             }
-            
+
             .install-command {
                 margin-left: auto;
                 margin-right: auto;
             }
-            
+
             .features-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .feature-card {
                 border-right: none;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
-            
+
             .feature-card:last-child {
                 border-bottom: none;
             }
-            
+
             .hero-title {
                 font-size: 2rem;
             }
-            
+
             .installer-title {
                 font-size: 2rem;
             }
-            
+
             .platform-tabs {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .tab-button {
                 width: 200px;
+            }
+
+            .intro-container {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .intro-content h2 {
+                font-size: 1.8rem;
+            }
+
+            .intro-content p {
+                font-size: 1rem;
+            }
+
+            .intro-stats {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .install-command {
+                padding: 1.5rem;
+                display: flex !important;
+                flex-direction: column;
+                gap: 1.5rem;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                white-space: normal;
+                word-break: break-all;
+            }
+
+            .install-command code {
+                display: block;
+                width: 100%;
+                white-space: normal;
+                word-break: break-all;
+                font-size: 0.75rem;
+                order: 1;
+            }
+
+            .copy-btn {
+                position: static !important;
+                display: block;
+                width: 100%;
+                max-width: 200px;
+                margin: 0;
+                order: 2;
             }
         }
     </style>
@@ -365,45 +513,90 @@
         </div>
     </div>
 
-    
+    <!-- Product Intro Section -->
+    <div class="product-intro">
+        <div class="intro-container">
+            <div class="intro-code">
+                <code>edit_block({<br>
+&nbsp;&nbsp;file_path: "src/main.rs",<br>
+&nbsp;&nbsp;old_string: "fn process_data",<br>
+&nbsp;&nbsp;new_string: "async fn process_data"<br>
+})<br>
+<br>
+start_terminal_command({ <br>
+&nbsp;&nbsp;command: "cargo build --release" <br>
+})<br>
+<br>
+sequential_thinking({<br>
+&nbsp;&nbsp;thought: "Analyzing architecture...",<br>
+&nbsp;&nbsp;thought_number: 1<br>
+})<br>
+<br>
+spawn_claude_agent({<br>
+&nbsp;&nbsp;task: "Research API patterns"<br>
+})</code>
+            </div>
+
+            <div class="intro-content">
+                <h2>Ultimate MCP Auto-Coding Toolset</h2>
+                <p>KODEGEN.ᴀɪ delivers a blazing-fast Rust-native MCP Server (Model Context Protocol) with 33 elite auto-coding tools designed for professional, autonomous code generation and predictable high-quality results. Every tool has been thoughtfully hyper-optimized for speed (code it faster) and context efficiency (code it cheaper).</p>
+
+                <div class="intro-stats">
+                    <div class="stat-box">
+                        <h3>⚡ 33 MCP Tools</h3>
+                        <p>Everything AI needs to code</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>🦀 Native Speed</h3>
+                        <p>Rust performance for LLMs</p>
+                    </div>
+                    <div class="stat-box">
+                        <h3>🔮 Sub-Agents</h3>
+                        <p>N-Depth Sub-agent Delegation</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="features-section">
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-database"></i></div>
-                <div class="feature-title">SURREAL MEMORY</div>
-                <div class="feature-desc">A best-in-class, context-augmentation memory system (vector & graph relationships) backed by <a href="https://surrealdb.com/" target="_blank">SurrealDB</a>, with global and project local retention capabilities.  Full <a href="https://obsidian.md/" target="_blank">Obsidian</a> knowledge-base support so you can see exactly what your agents have in context.</div>
+                <div class="feature-icon"><i class="fas fa-folder-tree"></i></div>
+                <div class="feature-title">WARP SPEED MODS</div>
+                <div class="feature-desc">AI agents get 14 filesystem tools optimized for coding workflows. Read massive files with offsets, batch-process multiple files, search codebases with streaming results, and make surgical edits with diff precision. When your LLM is writing code, refactoring projects, or analyzing repositories, these tools provide atomic operations, smart path validation, and concurrent traversal that keeps pace with agent thinking speed.</div>
             </div>
             
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-lock"></i></div>
-                <div class="feature-title">CRYYPT</div>
-                <div class="feature-desc"><a href="https://en.wikipedia.org/wiki/Post-quantum_cryptography" target="_blank">Post-quantum</a>, military-grade encryption vault and secret-store in pure Rust, allowing agents to execute security sensitive tasks without ever knowing your passwords. Zero-knowledge architecture with timing-based access controls for ultimate security.</div>
+                <div class="feature-icon"><i class="fas fa-terminal"></i></div>
+                <div class="feature-title">TERMINAL AS A TOOL</div>
+                <div class="feature-desc">Spawn full VT100 pseudoterminal sessions, run builds, execute tests, and orchestrate complex command chains—all from agent context. Smart state detection knows when commands finish, real-time output streaming keeps LLMs informed, and security controls prevent dangerous operations. Perfect when AI agents need full system access: running npm install, compiling code, or managing deployment pipelines without human intervention required.</div>
             </div>
             
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-microphone"></i></div>
-                <div class="feature-title">FLUENT VOICE</div>
-                <div class="feature-desc">A pure-Rust AI voice system with native wake word, <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank">fast-whisper</a> STT that dictates and <em>predicts</em> what you're about to say. Pure-Rust Candle TTS port of <a href="https://diaai.org/" target="_blank">Dia Voice</a> for expressive voice narration and conversation capabilities.</div>
+                <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                <div class="feature-title">REASONING CHAINS</div>
+                <div class="feature-desc">LLM coding agents can break down complex problems across multiple reasoning steps with stateful thinking sessions. Branch thought paths when exploring alternatives, revise previous reasoning when new insights emerge, and maintain unlimited context across extended problem-solving. Actor-model concurrency ensures lock-free performance. Ideal for planning architectures, debugging complex issues, or any multi-step analysis where agent thinking evolves dynamically.</div>
             </div>
         </div>
         
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-                <div class="feature-title">LOCAL AI</div>
-                <div class="feature-desc">KODEGEN.ᴀɪ auto-configures best-in-class local AI agents (<a href="https://arxiv.org/abs/2407.01502" target="_blank">"ambient agents"</a>) that you never interface with but work behind the scenes, assisting your "primetime ai" by auto-optimizing prompts, de-composing tasks, procuring documentation, memorizing key facts and preferences.</div>
+                <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                <div class="feature-title">AGENTS with AGENTS</div>
+                <div class="feature-desc">... with sub-agents ... true N-depth agent delegation with full prompt control. AI agents can spawn specialized Claude sub-agents for deep research, complex code generation, or parallel analysis tasks. Delegate work to specialist agents with custom prompts, stream their output in real-time, and manage full conversation lifecycles. Built for hierarchical, coordinated agent pyramids.</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="feature-title">LLM OBSERVABILITY</div>
+                <div class="feature-desc">LLM coding agents can track their own tool usage, analyze what's working, and optimize workflows with built-in introspection. See success rates, execution patterns, and detailed call history with full argument inspection. Essential for AI self-improvement: understand which tools you're using most, spot failure patterns, and debug your own behavior. Every invocation is tracked.</div>
             </div>
             
             <div class="feature-card">
                 <div class="feature-icon"><i class="fas fa-code"></i></div>
-                <div class="feature-title">CODE GENERATION</div>
-                <div class="feature-desc">KODEGEN.ᴀɪ is packed with best-in-class reasoning, thinking, planning and autocoding AI tools. Built-in deep reasoning chains, <a href="https://en.wikipedia.org/wiki/Monte_Carlo_tree_search" target="_blank">MCTS (Monte Carlo Tree Search)</a>, deep research agents, and specialized code generation models that understand your entire codebase context.</div>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon" style="font-family: 'Fira Code', monospace; font-weight: 600;">Ø</div>
-                <div class="feature-title">ZERO FRICTION</div>
-                <div class="feature-desc">Use the tools you love. KODEGEN.ᴀɪ is immediately available in <a href="https://claude.ai/desktop" target="_blank">Claude Desktop</a>, <a href="https://claude.ai/code" target="_blank">Claude Code</a>, <a href="https://codeium.com/windsurf" target="_blank">Windsurf</a>, <a href="https://cursor.sh/" target="_blank">Cursor.AI</a>, <a href="https://code.visualstudio.com/" target="_blank">VSCode</a>, <a href="https://zed.dev/" target="_blank">Zed</a>, <a href="https://raycast.com/" target="_blank">Raycast</a>, <a href="https://github.com/cline/cline" target="_blank">Cline</a>, <a href="https://github.com/RooVetGit/Roo-Cline" target="_blank">Roo Code</a>, and thousands of others in a single click. No configuration required. All Operating Systems supported.</div>
+                <div class="feature-title">AGENTS MANAGE PROMPTS</div>
+                <div class="feature-desc">AI agents can create, edit, and manage reusable prompt templates with <a href="https://github.com/mitsuhiko/minijinja" target="_blank">Jinja2</a> rendering and schema validation. Build prompt libraries, A/B test instruction variations, and standardize complex agent instructions—all programmatically. Maintain consistent instruction patterns across sessions with version control and dynamic rendering using variables, conditionals, and loops for sophisticated prompt engineering.</div>
             </div>
         </div>
     </div>
@@ -417,11 +610,11 @@
         <div class="footer">
         <p>
             <a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub</a> •
-            <a href="https://kodegen.ai/docs/" target="_blank">Documentation</a> •
-            <a href="https://discord.gg/cyrup-ai" target="_blank">Community</a>
+            <a href="docs/index.html">Documentation</a> •
+            <a href="https://github.com/cyrup-ai" target="_blank">Cyrup.ai</a>
         </p>
         <p style="margin-top: 1rem;">
-            Made with <i class="fas fa-heart"></i> by <a href="https://github.com/cyrup-ai" target="_blank">Cyrup.ai</a>
+            Made with (love) by <a href="https://www.linkedin.com/in/davemaple/" target="_blank">David Maple</a>
         </p>
     </div>
 

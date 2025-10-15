@@ -120,7 +120,7 @@ function Clone-Repository {
 # Install the project using cargo
 function Install-Project {
     Write-Info "Installing KODEGEN.ᴀɪ (this may take a few minutes)..."
-    
+
     # Install the binary to %USERPROFILE%\.cargo\bin
     $installResult = cargo install --path .
     if ($LASTEXITCODE -eq 0) {
@@ -131,36 +131,54 @@ function Install-Project {
     }
 }
 
+# Auto-configure all detected MCP clients
+function Auto-Configure-Clients {
+    Write-Info "Auto-configuring detected MCP clients..."
+
+    # Ensure cargo bin is in PATH
+    $cargoPath = "$env:USERPROFILE\.cargo\bin"
+    $env:PATH = "$cargoPath;$env:PATH"
+
+    # Run kodegen install
+    try {
+        kodegen install
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "MCP clients configured automatically!"
+        } else {
+            Write-Warn "Auto-configuration failed, you can run 'kodegen install' manually later"
+        }
+    } catch {
+        Write-Warn "Auto-configuration failed, you can run 'kodegen install' manually later"
+    }
+}
+
 
 # Main installation function
 function Main {
     Write-Info "🍯 KODEGEN.ᴀɪ One-Line Installer"
     Write-Info "============================================"
-    
+
     try {
         Detect-Platform
         Check-Requirements
         Install-Rust
         Clone-Repository
         Install-Project
-        
+        Auto-Configure-Clients
+
         Write-Info "============================================"
         Write-Success "Installation completed! 🚀"
         Write-Info ""
         Write-Info "Binary installed to: $env:USERPROFILE\.cargo\bin\kodegen.exe"
         Write-Info ""
-        Write-Info "Next steps:"
-        Write-Info "  1. Verify installation: kodegen --version"
-        Write-Info "  2. Configure Claude Desktop to use the MCP server"
+        Write-Info "Your MCP clients have been automatically configured!"
+        Write-Info "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
         Write-Info ""
-        Write-Info "Configuration for Claude Desktop (%APPDATA%\Claude\claude_desktop_config.json):"
-        Write-Info "  {"
-        Write-Info '    "mcpServers": {'
-        Write-Info '      "kodegen": {'
-        Write-Info '        "command": "kodegen"'
-        Write-Info "      }"
-        Write-Info "    }"
-        Write-Info "  }"
+        Write-Info "Next steps:"
+        Write-Info "  1. Restart your editor/IDE"
+        Write-Info "  2. Start coding with KODEGEN.ᴀɪ!"
+        Write-Info ""
+        Write-Info "Manual configuration (if needed): kodegen install"
         Write-Info ""
         Write-Success "Welcome to KODEGEN.ᴀɪ! 🍯"
     } finally {
