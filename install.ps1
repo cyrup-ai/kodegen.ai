@@ -5,21 +5,33 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Color output functions
+# Color output functions with fancy symbols
 function Write-Info($Message) {
-    Write-Host "[INFO] $Message" -ForegroundColor Blue
+    Write-Host "▸" -ForegroundColor Cyan -NoNewline
+    Write-Host " $Message"
 }
 
 function Write-Warn($Message) {
-    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+    Write-Host "⚠" -ForegroundColor Yellow -NoNewline
+    Write-Host " $Message"
 }
 
 function Write-Error($Message) {
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
+    Write-Host "✗" -ForegroundColor Red -NoNewline
+    Write-Host " $Message" -ForegroundColor Red
 }
 
 function Write-Success($Message) {
-    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
+    Write-Host "✓" -ForegroundColor Green -NoNewline
+    Write-Host " $Message" -ForegroundColor Green
+}
+
+function Write-Dim($Message) {
+    Write-Host $Message -ForegroundColor DarkGray
+}
+
+function Write-Bold($Message) {
+    Write-Host $Message -ForegroundColor White
 }
 
 # Cleanup function
@@ -158,8 +170,13 @@ function Auto-Configure-Clients {
 
 # Main installation function
 function Main {
-    Write-Info "🍯 KODEGEN.ᴀɪ One-Line Installer"
-    Write-Info "============================================"
+    Write-Host ""
+    Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host "║                                            ║" -ForegroundColor Cyan
+    Write-Host "║      🍯  KODEGEN.ᴀɪ  INSTALLER             ║" -ForegroundColor Cyan
+    Write-Host "║                                            ║" -ForegroundColor Cyan
+    Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
 
     try {
         Detect-Platform
@@ -169,21 +186,28 @@ function Main {
         Install-Project
         Auto-Configure-Clients
 
-        Write-Info "============================================"
+        Write-Host ""
+        Write-Host "────────────────────────────────────────────" -ForegroundColor Cyan
         Write-Success "Installation completed! 🚀"
-        Write-Info ""
-        Write-Info "Binary installed to: $env:USERPROFILE\.cargo\bin\kodegen.exe"
-        Write-Info ""
+        Write-Host "────────────────────────────────────────────" -ForegroundColor Cyan
+        Write-Host ""
+        Write-Dim "Binary installed to: $env:USERPROFILE\.cargo\bin\kodegen.exe"
+        Write-Host ""
         Write-Info "Your MCP clients have been automatically configured!"
-        Write-Info "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
-        Write-Info ""
-        Write-Info "Next steps:"
-        Write-Info "  1. Restart your editor/IDE"
-        Write-Info "  2. Start coding with KODEGEN.ᴀɪ!"
-        Write-Info ""
-        Write-Info "Manual configuration (if needed): kodegen install"
-        Write-Info ""
-        Write-Success "Welcome to KODEGEN.ᴀɪ! 🍯"
+        Write-Dim "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
+        Write-Host ""
+        Write-Bold "Next steps:"
+        Write-Host "  1. Restart your editor/IDE"
+        Write-Host "  2. Start coding with KODEGEN.ᴀɪ!"
+        Write-Host ""
+        Write-Dim "Manual configuration (if needed): kodegen install"
+        Write-Host ""
+        Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Green
+        Write-Host "║                                            ║" -ForegroundColor Green
+        Write-Host "║   🍯  Welcome to KODEGEN.ᴀɪ!               ║" -ForegroundColor Green
+        Write-Host "║                                            ║" -ForegroundColor Green
+        Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Green
+        Write-Host ""
     } finally {
         Cleanup
     }

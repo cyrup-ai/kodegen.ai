@@ -9,12 +9,15 @@ red() { echo -e "\033[0;31m$1\033[0m"; }
 green() { echo -e "\033[0;32m$1\033[0m"; }
 yellow() { echo -e "\033[0;33m$1\033[0m"; }
 blue() { echo -e "\033[0;34m$1\033[0m"; }
+cyan() { echo -e "\033[0;36m$1\033[0m"; }
+bold() { echo -e "\033[1m$1\033[0m"; }
+dim() { echo -e "\033[2m$1\033[0m"; }
 
-# Logging functions
-info() { blue "[INFO] $1"; }
-warn() { yellow "[WARN] $1"; }
-error() { red "[ERROR] $1"; }
-success() { green "[SUCCESS] $1"; }
+# Logging functions with fancy symbols
+info() { echo -e "\033[0;36m▸\033[0m $1"; }
+warn() { echo -e "\033[0;33m⚠\033[0m $1"; }
+error() { echo -e "\033[0;31m✗\033[0m $1"; }
+success() { echo -e "\033[0;32m✓\033[0m $1"; }
 
 # Cleanup function
 cleanup() {
@@ -200,8 +203,13 @@ auto_configure_clients() {
 
 # Main installation process
 main() {
-    info "🍯 KODEGEN.ᴀɪ One-Line Installer"
-    info "=========================================="
+    echo ""
+    cyan "╔════════════════════════════════════════════╗"
+    cyan "║                                            ║"
+    cyan "║      🍯  KODEGEN.ᴀɪ  INSTALLER             ║"
+    cyan "║                                            ║"
+    cyan "╚════════════════════════════════════════════╝"
+    echo ""
 
     detect_os
     detect_platform
@@ -211,21 +219,28 @@ main() {
     install_project
     auto_configure_clients
 
-    info "=========================================="
+    echo ""
+    cyan "────────────────────────────────────────────"
     success "Installation completed! 🚀"
-    info ""
-    info "Binary installed to: ~/.cargo/bin/kodegen"
-    info ""
+    cyan "────────────────────────────────────────────"
+    echo ""
+    dim "Binary installed to: ~/.cargo/bin/kodegen"
+    echo ""
     info "Your MCP clients have been automatically configured!"
-    info "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
-    info ""
-    info "Next steps:"
-    info "  1. Restart your editor/IDE"
-    info "  2. Start coding with KODEGEN.ᴀɪ!"
-    info ""
-    info "Manual configuration (if needed): kodegen install"
-    info ""
-    success "Welcome to KODEGEN.ᴀɪ! 🍯"
+    dim "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
+    echo ""
+    bold "Next steps:"
+    echo "  1. Restart your editor/IDE"
+    echo "  2. Start coding with KODEGEN.ᴀɪ!"
+    echo ""
+    dim "Manual configuration (if needed): kodegen install"
+    echo ""
+    green "╔════════════════════════════════════════════╗"
+    green "║                                            ║"
+    green "║   🍯  Welcome to KODEGEN.ᴀɪ!               ║"
+    green "║                                            ║"
+    green "╚════════════════════════════════════════════╝"
+    echo ""
 }
 
 # Run main function
