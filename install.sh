@@ -168,6 +168,9 @@ clone_repository() {
 install_project() {
     info "Installing KODEGEN.ᴀɪ (this may take a few minutes)..."
 
+    # Navigate to the server package
+    cd packages/server
+
     # Install the binary to ~/.cargo/bin
     if cargo install --path .; then
         success "KODEGEN.ᴀɪ installed successfully!"

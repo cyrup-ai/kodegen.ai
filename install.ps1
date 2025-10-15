@@ -121,6 +121,9 @@ function Clone-Repository {
 function Install-Project {
     Write-Info "Installing KODEGEN.ᴀɪ (this may take a few minutes)..."
 
+    # Navigate to the server package
+    Set-Location packages\server
+
     # Install the binary to %USERPROFILE%\.cargo\bin
     $installResult = cargo install --path .
     if ($LASTEXITCODE -eq 0) {
