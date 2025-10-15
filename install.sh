@@ -153,10 +153,10 @@ install_rust() {
 # Clone repository to temporary directory
 clone_repository() {
     info "Cloning KODEGEN.ᴀɪ repository..."
-    
+
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
-    
+
     # Try HTTPS (most compatible)
     if git clone --depth 1 https://github.com/cyrup-ai/kodegen.git; then
         cd kodegen
@@ -206,7 +206,7 @@ main() {
     echo ""
     cyan "╔════════════════════════════════════════════╗"
     cyan "║                                            ║"
-    cyan "║      🍯  KODEGEN.ᴀɪ  INSTALLER             ║"
+    cyan "║      ⚡  KODEGEN.ᴀɪ  INSTALLER             ║"
     cyan "║                                            ║"
     cyan "╚════════════════════════════════════════════╝"
     echo ""
@@ -237,7 +237,7 @@ main() {
     echo ""
     green "╔════════════════════════════════════════════╗"
     green "║                                            ║"
-    green "║   🍯  Welcome to KODEGEN.ᴀɪ!               ║"
+    green "║   ⚡  Welcome to KODEGEN.ᴀɪ!               ║"
     green "║                                            ║"
     green "╚════════════════════════════════════════════╝"
     echo ""

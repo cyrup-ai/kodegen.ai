@@ -173,7 +173,7 @@ function Main {
     Write-Host ""
     Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host "║                                            ║" -ForegroundColor Cyan
-    Write-Host "║      🍯  KODEGEN.ᴀɪ  INSTALLER             ║" -ForegroundColor Cyan
+    Write-Host "║      ⚡  KODEGEN.ᴀɪ  INSTALLER             ║" -ForegroundColor Cyan
     Write-Host "║                                            ║" -ForegroundColor Cyan
     Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
     Write-Host ""
@@ -204,7 +204,7 @@ function Main {
         Write-Host ""
         Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Green
         Write-Host "║                                            ║" -ForegroundColor Green
-        Write-Host "║   🍯  Welcome to KODEGEN.ᴀɪ!               ║" -ForegroundColor Green
+        Write-Host "║   ⚡  Welcome to KODEGEN.ᴀɪ!               ║" -ForegroundColor Green
         Write-Host "║                                            ║" -ForegroundColor Green
         Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Green
         Write-Host ""
