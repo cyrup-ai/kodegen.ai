@@ -212,6 +212,26 @@ check_existing_installation() {
     fi
 }
 
+# Helper function to check if a command is installed
+check_command_installed() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Helper function to check if a Debian package is installed
+check_debian_package() {
+    dpkg -s "$1" >/dev/null 2>&1
+}
+
+# Helper function to check if an RPM package is installed
+check_rpm_package() {
+    rpm -q "$1" >/dev/null 2>&1
+}
+
+# Helper function to check if a header file exists
+check_header_file() {
+    [[ -f "$1" ]]
+}
+
 # Install system dependencies
 install_deps() {
     if [[ "$SKIP_DEPS" == true ]]; then
@@ -222,14 +242,21 @@ install_deps() {
     info "Checking system dependencies..."
     
     local missing=()
-    command -v git >/dev/null || missing+=("git")
-    command -v curl >/dev/null || missing+=("curl")
+    
+    # Check common commands first
+    if ! check_command_installed git; then
+        missing+=("git")
+    fi
+    
+    if ! check_command_installed curl; then
+        missing+=("curl")
+    fi
     
     # OS-specific dependency checks
     if [[ "$OS" == "ubuntu" ]] || [[ "$OS" == "debian" ]] || [[ "$OS_LIKE" == *"debian"* ]]; then
-        dpkg -s build-essential >/dev/null 2>&1 || missing+=("build-essential")
-        dpkg -s pkg-config >/dev/null 2>&1 || missing+=("pkg-config")
-        dpkg -s libssl-dev >/dev/null 2>&1 || missing+=("libssl-dev")
+        check_debian_package build-essential || missing+=("build-essential")
+        check_debian_package pkg-config || missing+=("pkg-config")
+        check_debian_package libssl-dev || missing+=("libssl-dev")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -245,11 +272,11 @@ install_deps() {
         sudo apt-get update -qq
         sudo apt-get install -y "${missing[@]}"
     elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]] || [[ "$OS" == "centos" ]]; then
-        command -v gcc >/dev/null || missing+=("gcc")
-        command -v g++ >/dev/null || missing+=("gcc-c++")
-        command -v make >/dev/null || missing+=("make")
-        command -v pkg-config >/dev/null || missing+=("pkgconfig")
-        [[ -f /usr/include/openssl/ssl.h ]] || missing+=("openssl-devel")
+        check_command_installed gcc || missing+=("gcc")
+        check_command_installed g++ || missing+=("gcc-c++")
+        check_command_installed make || missing+=("make")
+        check_command_installed pkg-config || missing+=("pkgconfig")
+        check_header_file /usr/include/openssl/ssl.h || missing+=("openssl-devel")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -264,8 +291,8 @@ install_deps() {
         info "Installing missing dependencies: ${missing[*]}"
         sudo dnf install -y "${missing[@]}"
     elif [[ "$OS" == "arch" ]] || [[ "$OS" == "manjaro" ]]; then
-        command -v gcc >/dev/null || missing+=("base-devel")
-        [[ -f /usr/include/openssl/ssl.h ]] || missing+=("openssl")
+        check_command_installed gcc || missing+=("base-devel")
+        check_header_file /usr/include/openssl/ssl.h || missing+=("openssl")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -424,51 +451,81 @@ install_deps() {
         fi
     fi
     
-    success "System dependencies installed!"
-}
-
-# Install Rust nightly toolchain
-install_rust() {
-    if command -v rustc >/dev/null 2>&1; then
-        local rust_version=$(rustc --version)
-        success "Rust already installed: $rust_version"
-        
-        # Check for nightly toolchain
-        if rustup toolchain list | grep -q nightly; then
-            success "Nightly toolchain available"
-        else
-            if [[ "$DRY_RUN" == true ]]; then
-                info "Would install nightly toolchain"
-                return 0
-            fi
-            info "Installing nightly toolchain..."
-            rustup toolchain install nightly
-        fi
-        return 0
-    fi
-    
-    if [[ "$DRY_RUN" == true ]]; then
-        info "Would install Rust nightly toolchain"
-        return 0
-    fi
-    
-    # Fresh install
-    info "Installing Rust nightly toolchain..."
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-    
-    # Source the cargo environment
-    if [[ -f "$HOME/.cargo/env" ]]; then
-        # shellcheck source=/dev/null
-        source "$HOME/.cargo/env"
-    fi
-    
-    # Verify installation
-    if command -v rustc >/dev/null 2>&1; then
-        success "Rust nightly installed: $(rustc --version)"
-    else
-        error "Failed to install Rust toolchain"
+    # Verify critical tools after installation
+    if ! check_command_installed git; then
+        error "git still not available after installation"
         exit 1
     fi
+    
+    if ! check_command_installed gcc && ! check_command_installed clang; then
+        error "C compiler (gcc or clang) still not available after installation"
+        exit 1
+    fi
+    
+    success "System dependencies ready!"
+}
+
+# Install Rust toolchain (non-destructive)
+install_rust() {
+    if ! command -v rustc >/dev/null 2>&1; then
+        if [[ "$DRY_RUN" == true ]]; then
+            info "Would install Rust toolchain"
+            return 0
+        fi
+        
+        info "Installing Rust toolchain..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+            sh -s -- -y --default-toolchain stable
+        
+        if [[ -f "$HOME/.cargo/env" ]]; then
+            # shellcheck source=/dev/null
+            source "$HOME/.cargo/env"
+        fi
+        
+        if command -v rustc >/dev/null 2>&1; then
+            success "Rust stable installed: $(rustc --version)"
+        else
+            error "Failed to install Rust toolchain"
+            exit 1
+        fi
+    else
+        local default_toolchain=$(rustup default | awk '{print $1}' | head -1)
+        success "Rust already installed: $default_toolchain"
+    fi
+    
+    # Ensure nightly is available (but don't make it default)
+    if ! rustup toolchain list | grep -q nightly; then
+        if [[ "$DRY_RUN" == true ]]; then
+            info "Would install nightly toolchain for kodegen"
+            return 0
+        fi
+        
+        info "Installing nightly toolchain for kodegen..."
+        rustup toolchain install nightly
+        success "Nightly toolchain installed"
+    else
+        success "Nightly toolchain already available"
+    fi
+    
+    info "Project will use nightly via rust-toolchain.toml (global default unchanged)"
+}
+
+# Verify rust-toolchain.toml exists and specifies nightly
+verify_rust_toolchain_file() {
+    local toolchain_file="$TEMP_DIR/kodegen/rust-toolchain.toml"
+    
+    if [[ ! -f "$toolchain_file" ]]; then
+        error "Missing rust-toolchain.toml in repository!"
+        error "This file is required to specify nightly toolchain"
+        exit 1
+    fi
+    
+    if ! grep -q 'channel.*=.*"nightly"' "$toolchain_file"; then
+        error "rust-toolchain.toml doesn't specify nightly channel!"
+        exit 1
+    fi
+    
+    success "Verified rust-toolchain.toml specifies nightly"
 }
 
 # Clone repository to temporary directory
@@ -511,7 +568,13 @@ install_project() {
         return 0
     fi
     
+    # Verify project uses rust-toolchain.toml
+    verify_rust_toolchain_file
+    
     info "Installing KODEGEN.ᴀɪ MCP server (this may take a few minutes)..."
+    
+    # cargo will automatically use nightly via rust-toolchain.toml
+    info "Building with nightly toolchain (via rust-toolchain.toml)..."
 
     # Navigate to the server package
     cd packages/server
