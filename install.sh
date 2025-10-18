@@ -73,14 +73,106 @@ warn() { echo -e "\033[0;33m⚠\033[0m $1"; }
 error() { echo -e "\033[0;31m✗\033[0m $1"; }
 success() { echo -e "\033[0;32m✓\033[0m $1"; }
 
-# Cleanup function
-cleanup() {
+# Error handling with context
+show_error_with_context() {
+    local operation="$1"
+    local exit_code="$2"
+    local error_output="$3"
+    
+    error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    error "Operation failed: $operation"
+    error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    if [[ -n "$error_output" ]]; then
+        echo ""
+        error "Error output:"
+        echo "$error_output" | sed 's/^/  | /' | head -20
+        echo ""
+    fi
+    
+    error "Exit code: $exit_code"
+    error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+}
+
+# Save debug information to file
+save_debug_info() {
+    local debug_file="/tmp/kodegen-install-$(date +%Y%m%d-%H%M%S).log"
+    
+    {
+        echo "KODEGEN Installation Failed"
+        echo "Timestamp: $(date)"
+        echo ""
+        echo "System: $OS $PLATFORM"
+        echo "Shell: $BASH_VERSION"
+        echo ""
+        echo "Environment:"
+        env | grep -E '(PATH|HOME|USER|SHELL|TMPDIR)' | sort
+        echo ""
+        echo "Tool Versions:"
+        echo "  git: $(git --version 2>&1)"
+        echo "  curl: $(curl --version 2>&1 | head -1)"
+        echo "  rustc: $(rustc --version 2>&1)"
+        echo "  cargo: $(cargo --version 2>&1)"
+        echo ""
+        echo "Disk Space:"
+        df -h 2>&1
+        echo ""
+        if [[ -n "${TEMP_DIR:-}" ]]; then
+            echo "Temp Directory: $TEMP_DIR"
+            if [[ -d "$TEMP_DIR" ]]; then
+                echo "Temp Dir Contents:"
+                ls -la "$TEMP_DIR" 2>&1 || echo "Cannot list temp dir"
+            fi
+            echo ""
+        fi
+        echo "Recent Logs:"
+        tail -50 /tmp/cargo-install.log 2>/dev/null || echo "No cargo log"
+        echo ""
+    } > "$debug_file" 2>&1
+    
+    echo "$debug_file"
+}
+
+# Combined cleanup and error handler
+on_exit() {
+    local exit_code=$?
+    
+    # Always cleanup temp directory
     if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
         info "Cleaning up temporary directory..."
         rm -rf "$TEMP_DIR"
     fi
+    
+    # Show error info only on failure
+    if [[ $exit_code -ne 0 ]]; then
+        echo ""
+        error "╔════════════════════════════════════════╗"
+        error "║  Installation Failed                   ║"
+        error "╚════════════════════════════════════════╝"
+        echo ""
+        
+        local debug_file
+        debug_file=$(save_debug_info)
+        
+        info "Debug information saved to:"
+        echo "  $debug_file"
+        echo ""
+        info "To get help:"
+        echo "  1. Check the error message above"
+        echo "  2. Review the debug file"
+        echo "  3. Search existing issues: https://github.com/cyrup-ai/kodegen/issues"
+        echo "  4. Create new issue with debug file attached"
+        echo ""
+        info "Quick fixes to try:"
+        echo "  • Re-run the installer: ./install.sh"
+        echo "  • Skip dependencies: ./install.sh --skip-deps"
+        echo "  • Force reinstall: ./install.sh --force"
+        echo ""
+    fi
 }
-trap cleanup EXIT
+
+# Set up combined exit trap
+trap on_exit EXIT
 
 # Global variables for binary paths
 KODEGEN_BIN=""
@@ -188,16 +280,55 @@ check_existing_installation() {
         kodegend_version=$(kodegend --version 2>/dev/null | awk '{print $2}' || echo "unknown")
     fi
     
-    # If both binaries are installed and --force is not set, exit early
+    # If both binaries are installed
     if [[ "$has_kodegen" == true ]] && [[ "$has_kodegend" == true ]]; then
-        success "KODEGEN.ᴀɪ already installed:"
+        success "KODEGEN.ᴀɪ currently installed:"
         dim "  kodegen:  $kodegen_version"
         dim "  kodegend: $kodegend_version"
         
         if [[ "$FORCE_INSTALL" == false ]]; then
-            echo ""
-            info "Use --force to reinstall"
-            exit 0
+            # Check if newer version available
+            if should_check_for_updates; then
+                info "Checking for updates..."
+                
+                # Clone repo to temporary location (shallow, just to check version)
+                local temp_check=$(mktemp -d)
+                if git clone --depth 1 --quiet https://github.com/cyrup-ai/kodegen.git "$temp_check" 2>/dev/null; then
+                    local repo_version=$(get_repo_version "$temp_check/packages/server/Cargo.toml")
+                    
+                    if [[ -n "$repo_version" ]] && version_greater "$repo_version" "$kodegen_version"; then
+                        info "Newer version available: $repo_version"
+                        warn "Current version $kodegen_version is outdated"
+                        echo ""
+                        
+                        # Ask user if they want to update
+                        read -p "Update to version $repo_version? [Y/n] " -n 1 -r
+                        echo
+                        if [[ $REPLY =~ ^[Nn]$ ]]; then
+                            success "Keeping current version"
+                            rm -rf "$temp_check"
+                            exit 0
+                        else
+                            info "Proceeding with update..."
+                            rm -rf "$temp_check"
+                            return 0  # Continue with installation
+                        fi
+                    else
+                        success "You have the latest version"
+                        rm -rf "$temp_check"
+                        exit 0
+                    fi
+                else
+                    # Couldn't check for updates, assume current is fine
+                    info "Could not check for updates (network issue?)"
+                    success "Keeping current installation"
+                    exit 0
+                fi
+            else
+                echo ""
+                info "Use --force to reinstall"
+                exit 0
+            fi
         else
             warn "Forcing reinstall..."
         fi
@@ -230,6 +361,30 @@ check_rpm_package() {
 # Helper function to check if a header file exists
 check_header_file() {
     [[ -f "$1" ]]
+}
+
+# Helper: Should we check for updates?
+should_check_for_updates() {
+    # Don't check if in non-interactive mode or CI
+    [[ -t 0 ]] && [[ -z "${CI:-}" ]]
+}
+
+# Helper: Get version from Cargo.toml
+get_repo_version() {
+    local cargo_toml="$1"
+    grep '^version = ' "$cargo_toml" | head -1 | cut -d'"' -f2
+}
+
+# Helper: Compare semantic versions (returns 0 if v1 > v2)
+version_greater() {
+    local v1="$1"
+    local v2="$2"
+    
+    # Use sort -V to compare versions
+    local sorted=$(printf '%s\n%s\n' "$v1" "$v2" | sort -V | head -1)
+    
+    # If v2 sorts first, v1 is greater
+    [[ "$sorted" == "$v2" ]] && [[ "$v1" != "$v2" ]]
 }
 
 # Install system dependencies
@@ -307,11 +462,11 @@ install_deps() {
         info "Installing missing dependencies: ${missing[*]}"
         sudo pacman -S --needed --noconfirm "${missing[@]}"
     elif [[ "$OS" == "opensuse"* ]]; then
-        command -v gcc >/dev/null || missing+=("gcc")
-        command -v g++ >/dev/null || missing+=("gcc-c++")
-        command -v make >/dev/null || missing+=("make")
-        command -v pkg-config >/dev/null || missing+=("pkg-config")
-        [[ -f /usr/include/openssl/ssl.h ]] || missing+=("libopenssl-devel")
+        check_command_installed gcc || missing+=("gcc")
+        check_command_installed g++ || missing+=("gcc-c++")
+        check_command_installed make || missing+=("make")
+        check_command_installed pkg-config || missing+=("pkg-config")
+        check_header_file /usr/include/openssl/ssl.h || missing+=("libopenssl-devel")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -326,9 +481,9 @@ install_deps() {
         info "Installing missing dependencies: ${missing[*]}"
         sudo zypper install -y "${missing[@]}"
     elif [[ "$OS" == "alpine" ]]; then
-        command -v gcc >/dev/null || missing+=("build-base")
-        command -v pkg-config >/dev/null || missing+=("pkgconfig")
-        [[ -f /usr/include/openssl/ssl.h ]] || missing+=("openssl-dev")
+        check_command_installed gcc || missing+=("build-base")
+        check_command_installed pkg-config || missing+=("pkgconfig")
+        check_header_file /usr/include/openssl/ssl.h || missing+=("openssl-dev")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -345,8 +500,8 @@ install_deps() {
     elif [[ "$OS" == "macos" ]]; then
         # Check macOS-specific dependencies
         xcode-select -p >/dev/null 2>&1 || missing+=("xcode-cli-tools")
-        command -v brew >/dev/null || missing+=("homebrew")
-        command -v pkg-config >/dev/null || missing+=("pkg-config")
+        check_command_installed brew || missing+=("homebrew")
+        check_command_installed pkg-config || missing+=("pkg-config")
         
         if [[ ${#missing[@]} -eq 0 ]]; then
             success "All system dependencies present"
@@ -401,7 +556,7 @@ install_deps() {
             success "Xcode Command Line Tools already installed"
         fi
         # Install Homebrew if needed
-        if ! command -v brew >/dev/null 2>&1; then
+        if ! check_command_installed brew; then
             warn "Installing Homebrew..."
             /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
             if [[ -f /opt/homebrew/bin/brew ]]; then
@@ -409,7 +564,7 @@ install_deps() {
             fi
         fi
         # Install dependencies via Homebrew
-        if command -v brew >/dev/null 2>&1; then
+        if check_command_installed brew; then
             # Check which deps are missing
             local brew_missing=()
             brew list git &>/dev/null || brew_missing+=("git")
@@ -474,8 +629,20 @@ install_rust() {
         fi
         
         info "Installing Rust toolchain..."
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
-            sh -s -- -y --default-toolchain stable
+        local output
+        if ! output=$(curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs 2>&1 | sh -s -- -y --default-toolchain stable 2>&1); then
+            show_error_with_context "rustup installation" $? "$output"
+            
+            # Provide specific help
+            echo ""
+            info "Possible fixes:"
+            echo "  1. Check internet connection"
+            echo "  2. Verify you have write access to ~/.cargo"
+            echo "  3. Check disk space: df -h ~"
+            echo "  4. Try manual install: https://rustup.rs"
+            
+            exit 1
+        fi
         
         if [[ -f "$HOME/.cargo/env" ]]; then
             # shellcheck source=/dev/null
@@ -486,6 +653,7 @@ install_rust() {
             success "Rust stable installed: $(rustc --version)"
         else
             error "Failed to install Rust toolchain"
+            error "rustc command not found after installation"
             exit 1
         fi
     else
@@ -501,7 +669,16 @@ install_rust() {
         fi
         
         info "Installing nightly toolchain for kodegen..."
-        rustup toolchain install nightly
+        local nightly_output
+        if ! nightly_output=$(rustup toolchain install nightly 2>&1); then
+            show_error_with_context "nightly toolchain installation" $? "$nightly_output"
+            echo ""
+            info "Possible fixes:"
+            echo "  1. Check internet connection"
+            echo "  2. Try again: rustup toolchain install nightly"
+            echo "  3. Update rustup: rustup self update"
+            exit 1
+        fi
         success "Nightly toolchain installed"
     else
         success "Nightly toolchain already available"
@@ -536,13 +713,39 @@ clone_repository() {
     cd "$TEMP_DIR"
 
     # Try HTTPS (most compatible)
-    if git clone --depth 1 https://github.com/cyrup-ai/kodegen.git; then
-        cd kodegen
-        success "Repository cloned successfully"
-    else
-        error "Failed to clone repository"
+    local output
+    if ! output=$(git clone --depth 1 https://github.com/cyrup-ai/kodegen.git 2>&1); then
+        show_error_with_context "git clone" $? "$output"
+        
+        # Provide specific help based on error type
+        if echo "$output" | grep -q "Could not resolve"; then
+            echo ""
+            warn "Diagnosis: DNS resolution failed"
+            info "Possible fixes:"
+            echo "  1. Check internet: ping github.com"
+            echo "  2. Check DNS: nslookup github.com"
+            echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
+        elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
+            echo ""
+            warn "Diagnosis: Connection refused"
+            info "Possible fixes:"
+            echo "  1. Check if GitHub is down: https://www.githubstatus.com"
+            echo "  2. Check proxy settings: echo \$HTTP_PROXY"
+            echo "  3. Check firewall settings"
+        elif echo "$output" | grep -q "No space left"; then
+            echo ""
+            warn "Diagnosis: No disk space"
+            info "Possible fixes:"
+            echo "  1. Free up space: df -h"
+            echo "  2. Clear temp: rm -rf /tmp/*"
+            echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
+        fi
+        
         exit 1
     fi
+    
+    cd kodegen
+    success "Repository cloned successfully"
 }
 
 # Install the project using cargo
@@ -580,12 +783,20 @@ install_project() {
     cd packages/server
 
     # Install the MCP server binary to ~/.cargo/bin
-    if cargo install --path .; then
-        success "KODEGEN.ᴀɪ MCP server installed!"
-    else
-        error "MCP server installation failed"
+    local cargo_output
+    if ! cargo_output=$(cargo install --path . 2>&1); then
+        show_error_with_context "cargo install kodegen (MCP server)" $? "$cargo_output"
+        
+        echo ""
+        info "Possible fixes:"
+        echo "  1. Check disk space: df -h ~"
+        echo "  2. Clear cargo cache: rm -rf ~/.cargo/registry/cache"
+        echo "  3. Update rust: rustup update"
+        echo "  4. Check build log above for specific errors"
+        
         exit 1
     fi
+    success "KODEGEN.ᴀɪ MCP server installed!"
 
     # Ensure PATH is correct
     ensure_cargo_in_path
@@ -602,12 +813,20 @@ install_project() {
     info "Installing KODEGEN.ᴀɪ daemon..."
 
     # Install the daemon binary to ~/.cargo/bin
-    if cargo install --path .; then
-        success "KODEGEN.ᴀɪ daemon installed!"
-    else
-        error "Daemon installation failed"
+    local daemon_output
+    if ! daemon_output=$(cargo install --path . 2>&1); then
+        show_error_with_context "cargo install kodegend (daemon)" $? "$daemon_output"
+        
+        echo ""
+        info "Possible fixes:"
+        echo "  1. Check disk space: df -h ~"
+        echo "  2. Clear cargo cache: rm -rf ~/.cargo/registry/cache"
+        echo "  3. Update rust: rustup update"
+        echo "  4. Check build log above for specific errors"
+        
         exit 1
     fi
+    success "KODEGEN.ᴀɪ daemon installed!"
 
     # Verify daemon binary
     if ! verify_binary_installed "kodegend"; then
