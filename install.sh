@@ -82,12 +82,43 @@ install_deps() {
     elif [[ "$OS" == "macos" ]]; then
         # Install Xcode Command Line Tools if needed
         if ! xcode-select -p >/dev/null 2>&1; then
-            warn "Installing Xcode Command Line Tools..."
-            xcode-select --install 2>/dev/null || true
-            # Wait for installation
+            warn "Xcode Command Line Tools not found"
+            
+            # Check if we're in SSH/CI environment where GUI dialogs won't work
+            if [[ -n "${SSH_CONNECTION:-}" || -n "${CI:-}" ]]; then
+                error "Xcode Command Line Tools required but GUI not available (SSH/CI environment detected)"
+                error "Please install manually: xcode-select --install"
+                exit 1
+            fi
+            
+            # Check if installation is already in progress
+            if pgrep -q "Install Command Line"; then
+                info "Installation already in progress, waiting..."
+            else
+                info "Starting installation (this will open a GUI dialog)..."
+                xcode-select --install 2>/dev/null || true
+            fi
+            
+            # Wait for installation with timeout
+            info "Waiting for Xcode Command Line Tools installation (this may take a few minutes)..."
+            local max_wait=300  # 5 minutes
+            local elapsed=0
             until xcode-select -p >/dev/null 2>&1; do
+                if [[ $elapsed -ge $max_wait ]]; then
+                    echo ""
+                    error "Xcode Command Line Tools installation timed out after ${max_wait}s"
+                    error "Installation may have failed or been cancelled"
+                    error "Please complete the installation manually and run this script again: xcode-select --install"
+                    exit 1
+                fi
+                echo -n "."
                 sleep 5
+                elapsed=$((elapsed + 5))
             done
+            echo ""
+            success "Xcode Command Line Tools installed!"
+        else
+            success "Xcode Command Line Tools already installed"
         fi
         # Install Homebrew if needed
         if ! command -v brew >/dev/null 2>&1; then
@@ -143,10 +174,8 @@ install_rust() {
             info "Installing nightly toolchain..."
             rustup toolchain install nightly
         fi
-        # Set nightly as default for this project
-        info "Ensuring nightly toolchain is available..."
-        rustup default nightly
-        success "Rust nightly toolchain ready: $(rustc --version)"
+        # Nightly is available, project will use it via rust-toolchain.toml
+        success "Rust nightly toolchain available (global default unchanged)"
     fi
 }
 
@@ -169,16 +198,28 @@ clone_repository() {
 
 # Install the project using cargo
 install_project() {
-    info "Installing KODEGEN.ᴀɪ (this may take a few minutes)..."
+    info "Installing KODEGEN.ᴀɪ MCP server (this may take a few minutes)..."
 
     # Navigate to the server package
     cd packages/server
 
-    # Install the binary to ~/.cargo/bin
+    # Install the MCP server binary to ~/.cargo/bin
     if cargo install --path .; then
-        success "KODEGEN.ᴀɪ installed successfully!"
+        success "KODEGEN.ᴀɪ MCP server installed successfully!"
     else
-        error "Installation failed"
+        error "MCP server installation failed"
+        exit 1
+    fi
+
+    # Navigate to the daemon package
+    info "Installing KODEGEN.ᴀɪ daemon..."
+    cd ../daemon
+
+    # Install the daemon binary to ~/.cargo/bin
+    if cargo install --path .; then
+        success "KODEGEN.ᴀɪ daemon installed successfully!"
+    else
+        error "Daemon installation failed"
         exit 1
     fi
 }
@@ -201,6 +242,26 @@ auto_configure_clients() {
     fi
 }
 
+# Install and start daemon service
+install_daemon_service() {
+    info "Installing daemon service..."
+
+    # Source cargo environment to ensure kodegend is in PATH
+    if [[ -f "$HOME/.cargo/env" ]]; then
+        # shellcheck source=/dev/null
+        source "$HOME/.cargo/env"
+    fi
+
+    # Install daemon service (will prompt for authorization on macOS)
+    info "You may be prompted for your password to install the system service..."
+    if kodegend install; then
+        success "Daemon service installed and started!"
+    else
+        warn "Daemon service installation failed - auto-configuration will only run once"
+        warn "You can manually install the daemon later with: kodegend install"
+    fi
+}
+
 # Main installation process
 main() {
     echo ""
@@ -218,6 +279,7 @@ main() {
     clone_repository
     install_project
     auto_configure_clients
+    install_daemon_service
 
     echo ""
     cyan "────────────────────────────────────────────"
