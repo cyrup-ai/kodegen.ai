@@ -148,6 +148,31 @@ function Download-WithRetry {
     return $false
 }
 
+# Add a path to the persistent user PATH environment variable
+function Add-ToPersistentPath {
+    param([string]$PathToAdd)
+    
+    # Get current user PATH from registry
+    $regPath = "HKCU:\Environment"
+    $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    
+    # Check if already in PATH
+    if ($currentPath -split ';' -contains $PathToAdd) {
+        Write-Info "Already in PATH: $PathToAdd"
+        return
+    }
+    
+    # Add to PATH
+    $newPath = "$PathToAdd;$currentPath"
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+    
+    # Also update current session
+    $env:PATH = "$PathToAdd;$env:PATH"
+    
+    Write-Success "Added to PATH: $PathToAdd"
+    Write-Warn "PATH changes take effect in new shells"
+}
+
 # Install Rust nightly toolchain
 function Install-Rust {
     if (-not (Get-Command rustc -ErrorAction SilentlyContinue)) {
@@ -203,9 +228,9 @@ function Install-Rust {
             }
         }
         
-        # Add cargo to PATH for current session
+        # Add cargo bin to persistent PATH
         $cargoPath = "$env:USERPROFILE\.cargo\bin"
-        $env:PATH = "$cargoPath;$env:PATH"
+        Add-ToPersistentPath -PathToAdd $cargoPath
         
         # Verify installation
         if (Get-Command rustc -ErrorAction SilentlyContinue) {
@@ -242,6 +267,10 @@ function Install-Rust {
             Write-Error "Nightly toolchain verification failed"
             exit 1
         }
+        
+        # Ensure cargo bin is in persistent PATH
+        $cargoPath = "$env:USERPROFILE\.cargo\bin"
+        Add-ToPersistentPath -PathToAdd $cargoPath
     }
 }
 
@@ -265,53 +294,212 @@ function Clone-Repository {
     }
     
     # Clone with HTTPS (most compatible)
-    try {
-        git clone --depth 1 https://github.com/cyrup-ai/kodegen.git 2>&1 | Out-Null
-        Set-Location kodegen
-        Write-Success "Repository cloned successfully"
-    } catch {
-        Write-Error "Failed to clone repository"
+    $repoUrl = "https://github.com/cyrup-ai/kodegen.git"
+    $repoDir = "kodegen"
+    
+    Write-Info "Cloning from $repoUrl..."
+    
+    # Clone with visible output for debugging
+    git clone --depth 1 --progress $repoUrl 2>&1 | ForEach-Object {
+        if ($_ -match "Receiving objects|Resolving deltas") {
+            Write-Progress -Activity "Cloning repository" -Status $_
+        }
+    }
+    
+    # Check git exit code
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Git clone failed with exit code $LASTEXITCODE"
+        Write-Info "Repository URL: $repoUrl"
+        Write-Info "Check your internet connection and repository access"
         exit 1
+    }
+    
+    # Verify directory was created
+    if (-not (Test-Path $repoDir)) {
+        Write-Error "Clone appeared successful but directory not found: $repoDir"
+        exit 1
+    }
+    
+    Set-Location $repoDir
+    
+    # Verify it's a valid git repository
+    $isGitRepo = Test-Path ".git"
+    if (-not $isGitRepo) {
+        Write-Error "Cloned directory is not a valid git repository"
+        exit 1
+    }
+    
+    # Verify essential project files exist
+    $requiredFiles = @(
+        "Cargo.toml",
+        "packages\server\Cargo.toml",
+        "packages\daemon\Cargo.toml"
+    )
+    
+    $missingFiles = @()
+    foreach ($file in $requiredFiles) {
+        if (-not (Test-Path $file)) {
+            $missingFiles += $file
+        }
+    }
+    
+    if ($missingFiles.Count -gt 0) {
+        Write-Error "Clone incomplete - missing required files:"
+        foreach ($file in $missingFiles) {
+            Write-Error "  - $file"
+        }
+        exit 1
+    }
+    
+    # Get and display clone information
+    $commitHash = git rev-parse --short HEAD 2>$null
+    $commitDate = git log -1 --format=%cd --date=short 2>$null
+    
+    Write-Success "Repository cloned successfully"
+    Write-Dim "  Commit: $commitHash"
+    Write-Dim "  Date: $commitDate"
+    Write-Dim "  Location: $(Get-Location)"
+}
+
+# Verify binary installation
+function Test-BinaryInstalled {
+    param(
+        [string]$BinaryName,
+        [string]$ExpectedPath = "$env:USERPROFILE\.cargo\bin\$BinaryName.exe"
+    )
+    
+    Write-Info "Verifying $BinaryName installation..."
+    
+    # Check if file exists
+    if (-not (Test-Path $ExpectedPath)) {
+        Write-Error "Binary not found at expected location: $ExpectedPath"
+        return $false
+    }
+    
+    # Check file size (should be at least 1MB for Rust binaries)
+    $fileSize = (Get-Item $ExpectedPath).Length
+    if ($fileSize -lt 1MB) {
+        Write-Error "Binary is suspiciously small: $fileSize bytes"
+        return $false
+    }
+    
+    # Check if it's actually an executable
+    $extension = [System.IO.Path]::GetExtension($ExpectedPath)
+    if ($extension -ne ".exe") {
+        Write-Error "Binary has wrong extension: $extension"
+        return $false
+    }
+    
+    # Try to run with --version (most binaries support this)
+    try {
+        Write-Info "Testing $BinaryName execution..."
+        
+        # Use full path to avoid PATH issues
+        $versionOutput = & $ExpectedPath --version 2>&1
+        $exitCode = $LASTEXITCODE
+        
+        if ($exitCode -ne 0) {
+            Write-Error "Binary exits with error code: $exitCode"
+            Write-Dim "Output: $versionOutput"
+            return $false
+        }
+        
+        Write-Success "$BinaryName verified: $versionOutput"
+        return $true
+        
+    } catch {
+        Write-Error "Failed to execute binary: $($_.Exception.Message)"
+        return $false
     }
 }
 
 # Install the project using cargo
 function Install-Project {
-    Write-Info "Installing KODEGEN.ᴀɪ MCP server (this may take a few minutes)..."
+    Write-Info "Installing KODEGEN.ᴀɪ MCP server (this may take several minutes)..."
+    Write-Dim "Compiling Rust code... please wait patiently ☕"
+    Write-Host ""
 
+    # Create log directory
+    $logDir = Join-Path $env:TEMP "kodegen-install-logs"
+    New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    
     # Navigate to the server package
     Set-Location packages\server
 
-    # Install the MCP server binary to %USERPROFILE%\.cargo\bin
-    $installResult = cargo install --path .
+    # Install with output to both console and log file
+    $logFile = Join-Path $logDir "mcp-server-install.log"
+    Write-Dim "  Logging to: $logFile"
+    Write-Host ""
+    
+    # Show output in real-time while logging
+    cargo install --path . 2>&1 | Tee-Object -FilePath $logFile
+    
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "KODEGEN.ᴀɪ MCP server installed successfully!"
+        Write-Host ""
+        
+        # CRITICAL: Verify installation actually worked
+        if (Test-BinaryInstalled -BinaryName "kodegen") {
+            Write-Success "KODEGEN.ᴀɪ MCP server installed successfully!"
+        } else {
+            Write-Error "MCP server installation verification failed"
+            Write-Info "Build appeared successful but binary is not working"
+            Write-Info "Build log: $logFile"
+            exit 1
+        }
     } else {
-        Write-Error "MCP server installation failed"
+        Write-Host ""
+        Write-Error "MCP server installation failed (exit code: $LASTEXITCODE)"
+        Write-Host ""
+        Write-Info "Build log saved to: $logFile"
+        Write-Info "Please review the log and report issues at:"
+        Write-Dim "  https://github.com/cyrup-ai/kodegen/issues"
+        Write-Host ""
         exit 1
     }
 
     # Navigate to the daemon package
+    Write-Host ""
     Write-Info "Installing KODEGEN.ᴀɪ daemon..."
+    Write-Dim "Compiling daemon code... ☕"
+    Write-Host ""
     Set-Location ..\daemon
 
-    # Install the daemon binary to %USERPROFILE%\.cargo\bin
-    $installResult = cargo install --path .
+    $logFile = Join-Path $logDir "daemon-install.log"
+    Write-Dim "  Logging to: $logFile"
+    Write-Host ""
+    
+    cargo install --path . 2>&1 | Tee-Object -FilePath $logFile
+    
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "KODEGEN.ᴀɪ daemon installed successfully!"
+        Write-Host ""
+        
+        if (Test-BinaryInstalled -BinaryName "kodegend") {
+            Write-Success "KODEGEN.ᴀɪ daemon installed successfully!"
+        } else {
+            Write-Error "Daemon installation verification failed"
+            Write-Info "Build appeared successful but binary is not working"
+            Write-Info "Build log: $logFile"
+            exit 1
+        }
     } else {
-        Write-Error "Daemon installation failed"
+        Write-Host ""
+        Write-Error "Daemon installation failed (exit code: $LASTEXITCODE)"
+        Write-Host ""
+        Write-Info "Build log saved to: $logFile"
+        Write-Info "Please review the log and report issues at:"
+        Write-Dim "  https://github.com/cyrup-ai/kodegen/issues"
+        Write-Host ""
         exit 1
     }
+    
+    Write-Host ""
+    Write-Success "All binaries compiled and installed!"
+    Write-Dim "Build logs preserved in: $logDir"
 }
 
 # Auto-configure all detected MCP clients
 function Auto-Configure-Clients {
     Write-Info "Auto-configuring detected MCP clients..."
-
-    # Ensure cargo bin is in PATH
-    $cargoPath = "$env:USERPROFILE\.cargo\bin"
-    $env:PATH = "$cargoPath;$env:PATH"
 
     # Run kodegen install
     try {
@@ -329,10 +517,6 @@ function Auto-Configure-Clients {
 # Install and start daemon service
 function Install-DaemonService {
     Write-Info "Installing daemon service..."
-
-    # Ensure cargo bin is in PATH
-    $cargoPath = "$env:USERPROFILE\.cargo\bin"
-    $env:PATH = "$cargoPath;$env:PATH"
 
     # Install daemon service (may require administrator privileges)
     Write-Info "You may be prompted for administrator privileges to install the system service..."
