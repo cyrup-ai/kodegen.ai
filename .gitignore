@@ -1,2 +1,4 @@
 kodegen.ai.code-workspace
 task/*
+.claude/*
+.vscode/*
