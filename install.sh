@@ -8,6 +8,7 @@ set -euo pipefail
 FORCE_INSTALL=false
 SKIP_DEPS=false
 DRY_RUN=false
+NO_SUDO=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -16,6 +17,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --skip-deps)
+            SKIP_DEPS=true
+            shift
+            ;;
+        --no-sudo)
+            NO_SUDO=true
             SKIP_DEPS=true
             shift
             ;;
@@ -33,18 +39,19 @@ Usage: install.sh [OPTIONS]
 Options:
     --force         Force reinstall even if already installed
     --skip-deps     Skip system dependency installation
+    --no-sudo       Never use sudo (user-local install only)
     --dry-run       Show what would be installed without doing it
     --help          Show this help message
 
 Examples:
-    # Normal install (skips if already installed)
+    # Normal install
     ./install.sh
     
-    # Force reinstall
-    ./install.sh --force
+    # Install without sudo (user-local only)
+    ./install.sh --no-sudo
     
-    # Update only (skip deps)
-    ./install.sh --skip-deps
+    # Force reinstall, skip deps
+    ./install.sh --force --skip-deps
 EOF
             }
             show_help
@@ -177,6 +184,7 @@ trap on_exit EXIT
 # Global variables for binary paths
 KODEGEN_BIN=""
 KODEGEND_BIN=""
+RUST_NEWLY_INSTALLED=false
 
 # OS detection
 detect_os() {
@@ -322,6 +330,7 @@ check_existing_installation() {
                     # Couldn't check for updates, assume current is fine
                     info "Could not check for updates (network issue?)"
                     success "Keeping current installation"
+                    rm -rf "$temp_check"
                     exit 0
                 fi
             else
@@ -387,6 +396,141 @@ version_greater() {
     [[ "$sorted" == "$v2" ]] && [[ "$v1" != "$v2" ]]
 }
 
+# ============================================================================
+# Sudo and Environment Detection Helpers
+# ============================================================================
+
+# Check if running in CI environment
+is_ci() {
+    [[ -n "${CI:-}" ]] || \
+    [[ -n "${GITHUB_ACTIONS:-}" ]] || \
+    [[ -n "${GITLAB_CI:-}" ]] || \
+    [[ -n "${TRAVIS:-}" ]] || \
+    [[ -n "${CIRCLECI:-}" ]] || \
+    [[ -n "${JENKINS_URL:-}" ]]
+}
+
+# Check if running in interactive terminal
+is_interactive() {
+    [[ -t 0 ]] && ! is_ci
+}
+
+# Check if sudo is available and user has privileges
+# Returns 0 if sudo can be used, 1 otherwise
+has_sudo() {
+    # If --skip-deps set, pretend sudo doesn't exist
+    if [[ "${SKIP_DEPS:-false}" == true ]]; then
+        return 1
+    fi
+    
+    # Check if sudo command exists
+    if ! command -v sudo >/dev/null 2>&1; then
+        return 1  # sudo not installed
+    fi
+    
+    # Check if we can use sudo without password (cached credentials or NOPASSWD)
+    # This works in CI environments with passwordless sudo
+    if sudo -n true 2>/dev/null; then
+        return 0  # sudo works without password prompt
+    fi
+    
+    # In non-interactive environments (CI), fail if sudo requires password
+    if ! is_interactive; then
+        return 1  # CI environment but sudo needs password
+    fi
+    
+    # Interactive mode: Check if user CAN sudo (even if it requires password)
+    # This will prompt for password if needed
+    if sudo -v 2>/dev/null; then
+        return 0  # user has sudo privileges (password accepted or not needed)
+    fi
+    
+    return 1  # user lacks sudo privileges
+}
+
+# Prompt user to install dependencies with sudo
+# Returns 0 if user agrees, 1 if declined
+prompt_for_sudo_install() {
+    local missing=("$@")
+    
+    # In CI, don't prompt
+    if ! is_interactive; then
+        return 0  # Proceed without prompting in CI
+    fi
+    
+    echo ""
+    warn "System dependencies needed: ${missing[*]}"
+    echo ""
+    read -p "$(cyan '▸') Install dependencies with sudo? [Y/n] " -n 1 -r
+    echo
+    
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        return 1  # User declined
+    fi
+    
+    return 0  # User agreed
+}
+
+# Show helpful error when sudo not available
+show_no_sudo_help() {
+    local missing=("$@")
+    local os="$1"
+    shift
+    missing=("$@")
+    
+    error "╔════════════════════════════════════════╗"
+    error "║  Missing Dependencies & No Sudo Access ║"
+    error "╚════════════════════════════════════════╝"
+    echo ""
+    error "Required dependencies: ${missing[*]}"
+    echo ""
+    info "Options to proceed:"
+    echo ""
+    echo "  1. Install system-wide (requires sudo):"
+    
+    case "$os" in
+        ubuntu|debian)
+            echo "     sudo apt-get update"
+            echo "     sudo apt-get install -y ${missing[*]}"
+            ;;
+        fedora|rhel|centos)
+            echo "     sudo dnf install -y ${missing[*]}"
+            ;;
+        arch|manjaro)
+            echo "     sudo pacman -S --needed ${missing[*]}"
+            ;;
+        opensuse*)
+            echo "     sudo zypper install -y ${missing[*]}"
+            ;;
+        alpine)
+            echo "     sudo apk add ${missing[*]}"
+            ;;
+    esac
+    
+    echo ""
+    echo "  2. Use Homebrew (user-local, no sudo):"
+    echo "     /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+    echo "     brew install ${missing[*]}"
+    echo ""
+    echo "  3. Skip system dependencies (may fail during build):"
+    echo "     ./install.sh --skip-deps"
+    echo ""
+    
+    if is_interactive; then
+        read -p "$(cyan '▸') Continue without system dependencies? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            error "Installation cancelled"
+            return 1
+        fi
+        warn "Proceeding without system dependencies (compilation may fail)"
+        return 0
+    else
+        error "Non-interactive mode: cannot proceed without dependencies"
+        return 1
+    fi
+}
+
 # Install system dependencies
 install_deps() {
     if [[ "$SKIP_DEPS" == true ]]; then
@@ -424,6 +568,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo
         sudo apt-get update -qq
         sudo apt-get install -y "${missing[@]}"
     elif [[ "$OS" == "fedora" ]] || [[ "$OS" == "rhel" ]] || [[ "$OS" == "centos" ]]; then
@@ -444,6 +607,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo
         sudo dnf install -y "${missing[@]}"
     elif [[ "$OS" == "arch" ]] || [[ "$OS" == "manjaro" ]]; then
         check_command_installed gcc || missing+=("base-devel")
@@ -460,6 +642,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo
         sudo pacman -S --needed --noconfirm "${missing[@]}"
     elif [[ "$OS" == "opensuse"* ]]; then
         check_command_installed gcc || missing+=("gcc")
@@ -479,6 +680,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo
         sudo zypper install -y "${missing[@]}"
     elif [[ "$OS" == "alpine" ]]; then
         check_command_installed gcc || missing+=("build-base")
@@ -496,6 +716,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo
         sudo apk add --no-cache "${missing[@]}"
     elif [[ "$OS" == "macos" ]]; then
         # Check macOS-specific dependencies
@@ -593,7 +832,25 @@ install_deps() {
         fi
         
         info "Installing missing dependencies: ${missing[*]}"
-        # Try to find and use available package manager
+        
+        # Check sudo availability before using it
+        if ! has_sudo; then
+            if ! show_no_sudo_help "$OS" "${missing[@]}"; then
+                exit 1
+            fi
+            return 0  # User chose to continue without deps
+        fi
+        
+        # In interactive mode, ask user first
+        if is_interactive; then
+            if ! prompt_for_sudo_install "${missing[@]}"; then
+                warn "Skipping system dependency installation"
+                info "Continuing with user-local installation only"
+                return 0
+            fi
+        fi
+        
+        # Now safe to use sudo - Try to find and use available package manager
         if command -v apt-get >/dev/null 2>&1; then
             sudo apt-get update -qq && sudo apt-get install -y "${missing[@]}"
         elif command -v yum >/dev/null 2>&1; then
@@ -623,6 +880,8 @@ install_deps() {
 # Install Rust toolchain (non-destructive)
 install_rust() {
     if ! command -v rustc >/dev/null 2>&1; then
+        RUST_NEWLY_INSTALLED=true
+        
         if [[ "$DRY_RUN" == true ]]; then
             info "Would install Rust toolchain"
             return 0
@@ -712,40 +971,114 @@ clone_repository() {
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
 
-    # Try HTTPS (most compatible)
+    # Check git version for sparse checkout support (requires 2.25+)
+    local git_version=$(git --version | awk '{print $3}')
+    local git_major=$(echo "$git_version" | cut -d. -f1)
+    local git_minor=$(echo "$git_version" | cut -d. -f2)
+    
+    local use_sparse=false
+    if [[ $git_major -gt 2 ]] || [[ $git_major -eq 2 && $git_minor -ge 25 ]]; then
+        use_sparse=true
+    fi
+
     local output
-    if ! output=$(git clone --depth 1 https://github.com/cyrup-ai/kodegen.git 2>&1); then
-        show_error_with_context "git clone" $? "$output"
+    if [[ "$use_sparse" == true ]]; then
+        # Modern sparse checkout (git 2.25+)
+        info "Using sparse checkout to minimize download size..."
         
-        # Provide specific help based on error type
-        if echo "$output" | grep -q "Could not resolve"; then
-            echo ""
-            warn "Diagnosis: DNS resolution failed"
-            info "Possible fixes:"
-            echo "  1. Check internet: ping github.com"
-            echo "  2. Check DNS: nslookup github.com"
-            echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
-        elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
-            echo ""
-            warn "Diagnosis: Connection refused"
-            info "Possible fixes:"
-            echo "  1. Check if GitHub is down: https://www.githubstatus.com"
-            echo "  2. Check proxy settings: echo \$HTTP_PROXY"
-            echo "  3. Check firewall settings"
-        elif echo "$output" | grep -q "No space left"; then
-            echo ""
-            warn "Diagnosis: No disk space"
-            info "Possible fixes:"
-            echo "  1. Free up space: df -h"
-            echo "  2. Clear temp: rm -rf /tmp/*"
-            echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
+        # Clone without checking out files
+        if ! output=$(git clone --filter=blob:none --sparse https://github.com/cyrup-ai/kodegen.git 2>&1); then
+            show_error_with_context "git clone (sparse)" $? "$output"
+            
+            # Provide specific help based on error type
+            if echo "$output" | grep -q "Could not resolve"; then
+                echo ""
+                warn "Diagnosis: DNS resolution failed"
+                info "Possible fixes:"
+                echo "  1. Check internet: ping github.com"
+                echo "  2. Check DNS: nslookup github.com"
+                echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
+            elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
+                echo ""
+                warn "Diagnosis: Connection refused"
+                info "Possible fixes:"
+                echo "  1. Check if GitHub is down: https://www.githubstatus.com"
+                echo "  2. Check proxy settings: echo \$HTTP_PROXY"
+                echo "  3. Check firewall settings"
+            elif echo "$output" | grep -q "No space left"; then
+                echo ""
+                warn "Diagnosis: No disk space"
+                info "Possible fixes:"
+                echo "  1. Free up space: df -h"
+                echo "  2. Clear temp: rm -rf /tmp/*"
+                echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
+            fi
+            
+            exit 1
         fi
         
-        exit 1
+        cd kodegen
+        
+        # Specify which paths to actually checkout
+        if ! output=$(git sparse-checkout set \
+            Cargo.toml \
+            Cargo.lock \
+            rust-toolchain.toml \
+            packages/ 2>&1); then
+            warn "Sparse checkout setup failed, falling back to full checkout"
+            # Fall back: checkout everything
+            git sparse-checkout disable 2>/dev/null || true
+        else
+            success "Sparse checkout configured (packages only)"
+        fi
+    else
+        # Fallback for older git versions
+        warn "Git version $git_version detected (sparse checkout requires 2.25+)"
+        info "Using standard clone..."
+        
+        if ! output=$(git clone --depth 1 https://github.com/cyrup-ai/kodegen.git 2>&1); then
+            show_error_with_context "git clone" $? "$output"
+            
+            # Provide specific help based on error type
+            if echo "$output" | grep -q "Could not resolve"; then
+                echo ""
+                warn "Diagnosis: DNS resolution failed"
+                info "Possible fixes:"
+                echo "  1. Check internet: ping github.com"
+                echo "  2. Check DNS: nslookup github.com"
+                echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
+            elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
+                echo ""
+                warn "Diagnosis: Connection refused"
+                info "Possible fixes:"
+                echo "  1. Check if GitHub is down: https://www.githubstatus.com"
+                echo "  2. Check proxy settings: echo \$HTTP_PROXY"
+                echo "  3. Check firewall settings"
+            elif echo "$output" | grep -q "No space left"; then
+                echo ""
+                warn "Diagnosis: No disk space"
+                info "Possible fixes:"
+                echo "  1. Free up space: df -h"
+                echo "  2. Clear temp: rm -rf /tmp/*"
+                echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
+            fi
+            
+            exit 1
+        fi
+        
+        cd kodegen
     fi
     
-    cd kodegen
-    success "Repository cloned successfully"
+    # Extract version from Cargo.toml (reusing existing function)
+    local version=$(get_repo_version "packages/server/Cargo.toml")
+    
+    if [[ -n "$version" ]]; then
+        success "Repository cloned successfully (v$version)"
+        export KODEGEN_VERSION="$version"
+    else
+        success "Repository cloned successfully"
+        warn "Could not determine version from Cargo.toml"
+    fi
 }
 
 # Install the project using cargo
@@ -774,7 +1107,12 @@ install_project() {
     # Verify project uses rust-toolchain.toml
     verify_rust_toolchain_file
     
-    info "Installing KODEGEN.ᴀɪ MCP server (this may take a few minutes)..."
+    local version_info=""
+    if [[ -n "${KODEGEN_VERSION:-}" ]]; then
+        version_info=" v$KODEGEN_VERSION"
+    fi
+    
+    info "Installing KODEGEN.ᴀɪ MCP server${version_info} (this may take a few minutes)..."
     
     # cargo will automatically use nightly via rust-toolchain.toml
     info "Building with nightly toolchain (via rust-toolchain.toml)..."
@@ -810,7 +1148,13 @@ install_project() {
 
     # Navigate to the daemon package
     cd ../daemon
-    info "Installing KODEGEN.ᴀɪ daemon..."
+    
+    local version_info=""
+    if [[ -n "${KODEGEN_VERSION:-}" ]]; then
+        version_info=" v$KODEGEN_VERSION"
+    fi
+    
+    info "Installing KODEGEN.ᴀɪ daemon${version_info}..."
 
     # Install the daemon binary to ~/.cargo/bin
     local daemon_output
@@ -908,12 +1252,49 @@ main() {
     echo ""
     dim "Binary installed to: ~/.cargo/bin/kodegen"
     echo ""
+    
+    # Check if user's current shell has cargo in PATH
+    local cargo_in_current_path=false
+    if [[ ":$PATH:" == *":$HOME/.cargo/bin:"* ]]; then
+        cargo_in_current_path=true
+    fi
+    
+    # Show PATH warning if Rust was newly installed OR cargo not in current PATH
+    if [[ "$RUST_NEWLY_INSTALLED" == true ]] || [[ "$cargo_in_current_path" == false ]]; then
+        echo ""
+        yellow "╔════════════════════════════════════════════╗"
+        yellow "║                                            ║"
+        yellow "║  ⚠️  SHELL RESTART REQUIRED  ⚠️            ║"
+        yellow "║                                            ║"
+        yellow "╚════════════════════════════════════════════╝"
+        echo ""
+        warn "To use 'kodegen' from the command line, you need to:"
+        echo ""
+        bold "Option 1 (Recommended):"
+        echo "  Close and reopen your terminal"
+        echo ""
+        bold "Option 2 (Quick):"
+        echo "  Run this command in your current shell:"
+        cyan "  source \"\$HOME/.cargo/env\""
+        echo ""
+        dim "Why? Your shell's PATH needs to include ~/.cargo/bin"
+        echo ""
+    fi
+    
     info "Your MCP clients have been automatically configured!"
     dim "Supported editors: Claude Desktop, Windsurf, Cursor, Zed, Roo Code"
     echo ""
     bold "Next steps:"
-    echo "  1. Restart your editor/IDE"
-    echo "  2. Start coding with KODEGEN.ᴀɪ!"
+    if [[ "$RUST_NEWLY_INSTALLED" == true ]] || [[ "$cargo_in_current_path" == false ]]; then
+        echo "  1. Restart your terminal (or source ~/.cargo/env)"
+        echo "  2. Restart your editor/IDE"
+        echo "  3. Verify: kodegen --version"
+        echo "  4. Start coding with KODEGEN.ᴀɪ!"
+    else
+        echo "  1. Restart your editor/IDE"
+        echo "  2. Verify: kodegen --version"
+        echo "  3. Start coding with KODEGEN.ᴀɪ!"
+    fi
     echo ""
     dim "Manual configuration (if needed): kodegen install"
     echo ""
