@@ -238,6 +238,262 @@ ensure_cargo_in_path() {
     fi
 }
 
+# Check if platform has pre-built binary available
+has_binary_for_platform() {
+    local platform="$1"
+    
+    case "$platform" in
+        x86_64-apple-darwin|\
+        aarch64-apple-darwin|\
+        x86_64-unknown-linux-gnu|\
+        aarch64-unknown-linux-gnu)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Download and install from AppImage (Linux)
+download_and_install_appimage() {
+    local platform="$1"
+    
+    info "Downloading pre-built binaries from GitHub releases..."
+    
+    # GitHub API endpoint
+    local repo_owner="cyrup-ai"
+    local repo_name="kodegen"
+    local api_url="https://api.github.com/repos/${repo_owner}/${repo_name}/releases/latest"
+    
+    # Fetch release metadata
+    local release_json
+    if ! release_json=$(curl -sS -f "$api_url" 2>&1); then
+        warn "Failed to fetch release info: $release_json"
+        return 1
+    fi
+    
+    # Extract AppImage download URL
+    local appimage_url
+    appimage_url=$(echo "$release_json" | \
+        grep "browser_download_url.*\.AppImage" | \
+        head -1 | \
+        cut -d'"' -f4)
+    
+    if [[ -z "$appimage_url" ]]; then
+        warn "No AppImage found in latest release"
+        return 1
+    fi
+    
+    
+    # Download to temporary location
+    local temp_dir
+    temp_dir=$(mktemp -d) || {
+        error "Failed to create temp directory"
+        return 1
+    }
+    
+    trap "rm -rf $temp_dir" RETURN
+    
+    local appimage_path="${temp_dir}/kodegen.AppImage"
+    
+    info "Downloading from: $appimage_url"
+    if ! curl -L -f -o "$appimage_path" "$appimage_url" 2>&1; then
+        error "Failed to download AppImage"
+        return 1
+    fi
+    
+    # Make executable
+    chmod +x "$appimage_path"
+    
+    # Extract embedded filesystem
+    info "Extracting binaries..."
+    cd "$temp_dir"
+    if ! ./"$(basename "$appimage_path")" --appimage-extract >/dev/null 2>&1; then
+        error "Failed to extract AppImage"
+        return 1
+    fi
+    
+    # Verify binaries exist in extracted filesystem
+    if [[ ! -f "squashfs-root/usr/bin/kodegen" ]] || \
+       [[ ! -f "squashfs-root/usr/bin/kodegend" ]]; then
+        error "Expected binaries not found in AppImage"
+        return 1
+    fi
+    
+    # Ensure installation directory exists
+    local install_dir="$HOME/.cargo/bin"
+    mkdir -p "$install_dir" || {
+        error "Failed to create install directory"
+        return 1
+    }
+    
+    # Copy binaries
+    info "Installing binaries to $install_dir..."
+    cp "squashfs-root/usr/bin/kodegen" "$install_dir/" || return 1
+    cp "squashfs-root/usr/bin/kodegend" "$install_dir/" || return 1
+    
+    # kodegen_install might be in different location
+    if [[ -f "squashfs-root/usr/bin/kodegen_install" ]]; then
+        cp "squashfs-root/usr/bin/kodegen_install" "$install_dir/"
+    fi
+    
+    # Set permissions
+    chmod +x "$install_dir/kodegen"
+    chmod +x "$install_dir/kodegend"
+    [[ -f "$install_dir/kodegen_install" ]] && chmod +x "$install_dir/kodegen_install"
+    
+    # Set binary paths for later verification
+    KODEGEN_BIN="$install_dir/kodegen"
+    KODEGEND_BIN="$install_dir/kodegend"
+    
+    success "Binaries installed from AppImage"
+    return 0
+}
+
+# Download and install from DMG (macOS)
+download_and_install_dmg() {
+    local platform="$1"
+    
+    info "Downloading pre-built binaries from GitHub releases..."
+    
+    # Fetch release metadata
+    local api_url="https://api.github.com/repos/cyrup-ai/kodegen/releases/latest"
+    local release_json
+    if ! release_json=$(curl -sS -f "$api_url" 2>&1); then
+        warn "Failed to fetch release info"
+        return 1
+    fi
+    
+    # Extract DMG download URL
+    local dmg_url
+    dmg_url=$(echo "$release_json" | \
+        grep "browser_download_url.*\.dmg" | \
+        head -1 | \
+        cut -d'"' -f4)
+    
+    if [[ -z "$dmg_url" ]]; then
+        warn "No DMG found in latest release"
+        return 1
+    fi
+    
+    # Download DMG
+    local temp_dir
+    temp_dir=$(mktemp -d)
+    trap "rm -rf $temp_dir" RETURN
+    
+    local dmg_path="${temp_dir}/kodegen.dmg"
+    
+    info "Downloading from: $dmg_url"
+    if ! curl -L -f -o "$dmg_path" "$dmg_url" 2>&1; then
+        error "Failed to download DMG"
+        return 1
+    fi
+    
+    # Mount DMG
+    info "Mounting disk image..."
+    local mount_output
+    mount_output=$(hdiutil attach "$dmg_path" -nobrowse 2>&1) || {
+        error "Failed to mount DMG"
+        return 1
+    }
+    
+    # Extract mount point from hdiutil output
+    local mount_point
+    mount_point=$(echo "$mount_output" | grep "/Volumes/" | awk '{print $3}')
+    
+    if [[ -z "$mount_point" ]]; then
+        error "Could not determine mount point"
+        return 1
+    fi
+    
+    # Ensure unmount on exit
+    trap "hdiutil detach '$mount_point' -quiet 2>/dev/null; rm -rf $temp_dir" RETURN
+    
+    # Find .app bundle
+    local app_bundle
+    app_bundle=$(find "$mount_point" -name "*.app" -type d -maxdepth 1 | head -1)
+    
+    if [[ -z "$app_bundle" ]]; then
+        error "No .app bundle found in DMG"
+        return 1
+    fi
+    
+    info "Extracting binaries from .app bundle..."
+    
+    # Ensure installation directory
+    local install_dir="$HOME/.cargo/bin"
+    mkdir -p "$install_dir"
+    
+    # Extract binaries from .app structure
+    # Main binary is in Contents/MacOS/
+    if [[ -f "$app_bundle/Contents/MacOS/kodegen_install" ]]; then
+        cp "$app_bundle/Contents/MacOS/kodegen_install" "$install_dir/"
+        chmod +x "$install_dir/kodegen_install"
+    fi
+    
+    # Other binaries might be in Contents/Resources/
+    if [[ -f "$app_bundle/Contents/Resources/kodegen" ]]; then
+        cp "$app_bundle/Contents/Resources/kodegen" "$install_dir/"
+        chmod +x "$install_dir/kodegen"
+    fi
+    
+    if [[ -f "$app_bundle/Contents/Resources/kodegend" ]]; then
+        cp "$app_bundle/Contents/Resources/kodegend" "$install_dir/"
+        chmod +x "$install_dir/kodegend"
+    fi
+    
+    # Verify at least main binaries were copied
+    if [[ ! -f "$install_dir/kodegen" ]] || [[ ! -f "$install_dir/kodegend" ]]; then
+        error "Failed to extract required binaries from .app bundle"
+        return 1
+    fi
+    
+    KODEGEN_BIN="$install_dir/kodegen"
+    KODEGEND_BIN="$install_dir/kodegend"
+    
+    success "Binaries installed from DMG"
+    return 0
+}
+
+# Try to install from binary, fallback to cargo on failure
+install_from_binary_or_cargo() {
+    local needs_cargo=false
+    
+    # Check if we can use binary distribution
+    if has_binary_for_platform "$PLATFORM"; then
+        info "Pre-built binaries available for $PLATFORM"
+        
+        # Try appropriate download method for platform
+        if [[ "$OS" == "macos" ]] || [[ "$OS" == "darwin" ]]; then
+            if download_and_install_dmg "$PLATFORM"; then
+                success "Installed from pre-built binaries in <60 seconds!"
+                return 0
+            fi
+        elif [[ "$OS" == "linux" ]]; then
+            if download_and_install_appimage "$PLATFORM"; then
+                success "Installed from pre-built binaries in <60 seconds!"
+                return 0
+            fi
+        fi
+        
+        # If we get here, binary download failed
+        warn "Binary download failed, falling back to cargo install..."
+        needs_cargo=true
+    else
+        info "No pre-built binary for $PLATFORM"
+        info "Will compile from source (this takes 5-15 minutes)..."
+        needs_cargo=true
+    fi
+    
+    # Fallback: cargo install from source
+    if [[ "$needs_cargo" == true ]]; then
+        install_rust
+        clone_repository
+        install_project
+    fi
+}
+
 # Verify binary is installed and executable
 verify_binary_installed() {
     local bin_name="$1"
@@ -971,105 +1227,63 @@ clone_repository() {
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
 
-    # Check git version for sparse checkout support (requires 2.25+)
-    local git_version=$(git --version | awk '{print $3}')
-    local git_major=$(echo "$git_version" | cut -d. -f1)
-    local git_minor=$(echo "$git_version" | cut -d. -f2)
+    # Clone with sparse checkout (requires git 2.25+, January 2020)
+    info "Using sparse checkout to minimize download size..."
     
-    local use_sparse=false
-    if [[ $git_major -gt 2 ]] || [[ $git_major -eq 2 && $git_minor -ge 25 ]]; then
-        use_sparse=true
-    fi
-
     local output
-    if [[ "$use_sparse" == true ]]; then
-        # Modern sparse checkout (git 2.25+)
-        info "Using sparse checkout to minimize download size..."
+    if ! output=$(git clone --filter=blob:none --sparse https://github.com/cyrup-ai/kodegen.git 2>&1); then
+        show_error_with_context "git clone (sparse)" $? "$output"
         
-        # Clone without checking out files
-        if ! output=$(git clone --filter=blob:none --sparse https://github.com/cyrup-ai/kodegen.git 2>&1); then
-            show_error_with_context "git clone (sparse)" $? "$output"
-            
-            # Provide specific help based on error type
-            if echo "$output" | grep -q "Could not resolve"; then
-                echo ""
-                warn "Diagnosis: DNS resolution failed"
-                info "Possible fixes:"
-                echo "  1. Check internet: ping github.com"
-                echo "  2. Check DNS: nslookup github.com"
-                echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
-            elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
-                echo ""
-                warn "Diagnosis: Connection refused"
-                info "Possible fixes:"
-                echo "  1. Check if GitHub is down: https://www.githubstatus.com"
-                echo "  2. Check proxy settings: echo \$HTTP_PROXY"
-                echo "  3. Check firewall settings"
-            elif echo "$output" | grep -q "No space left"; then
-                echo ""
-                warn "Diagnosis: No disk space"
-                info "Possible fixes:"
-                echo "  1. Free up space: df -h"
-                echo "  2. Clear temp: rm -rf /tmp/*"
-                echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
-            fi
-            
-            exit 1
+        # Provide specific help based on error type
+        if echo "$output" | grep -q "Could not resolve"; then
+            echo ""
+            warn "Diagnosis: DNS resolution failed"
+            info "Possible fixes:"
+            echo "  1. Check internet: ping github.com"
+            echo "  2. Check DNS: nslookup github.com"
+            echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
+        elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
+            echo ""
+            warn "Diagnosis: Connection refused"
+            info "Possible fixes:"
+            echo "  1. Check if GitHub is down: https://www.githubstatus.com"
+            echo "  2. Check proxy settings: echo \$HTTP_PROXY"
+            echo "  3. Check firewall settings"
+        elif echo "$output" | grep -q "No space left"; then
+            echo ""
+            warn "Diagnosis: No disk space"
+            info "Possible fixes:"
+            echo "  1. Free up space: df -h"
+            echo "  2. Clear temp: rm -rf /tmp/*"
+            echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
+        elif echo "$output" | grep -q "unknown option\|unrecognized argument"; then
+            echo ""
+            error "Git version too old (sparse checkout requires 2.25+, January 2020)"
+            info "Please update git:"
+            echo "  • macOS: brew upgrade git"
+            echo "  • Ubuntu/Debian: sudo apt-get update && sudo apt-get upgrade git"
+            echo "  • Fedora: sudo dnf upgrade git"
         fi
         
-        cd kodegen
-        
-        # Specify which paths to actually checkout
-        if ! output=$(git sparse-checkout set \
-            Cargo.toml \
-            Cargo.lock \
-            rust-toolchain.toml \
-            packages/ 2>&1); then
-            warn "Sparse checkout setup failed, falling back to full checkout"
-            # Fall back: checkout everything
-            git sparse-checkout disable 2>/dev/null || true
-        else
-            success "Sparse checkout configured (packages only)"
-        fi
-    else
-        # Fallback for older git versions
-        warn "Git version $git_version detected (sparse checkout requires 2.25+)"
-        info "Using standard clone..."
-        
-        if ! output=$(git clone --depth 1 https://github.com/cyrup-ai/kodegen.git 2>&1); then
-            show_error_with_context "git clone" $? "$output"
-            
-            # Provide specific help based on error type
-            if echo "$output" | grep -q "Could not resolve"; then
-                echo ""
-                warn "Diagnosis: DNS resolution failed"
-                info "Possible fixes:"
-                echo "  1. Check internet: ping github.com"
-                echo "  2. Check DNS: nslookup github.com"
-                echo "  3. Try alternate DNS: use 8.8.8.8 or 1.1.1.1"
-            elif echo "$output" | grep -q "Connection refused\|Failed to connect"; then
-                echo ""
-                warn "Diagnosis: Connection refused"
-                info "Possible fixes:"
-                echo "  1. Check if GitHub is down: https://www.githubstatus.com"
-                echo "  2. Check proxy settings: echo \$HTTP_PROXY"
-                echo "  3. Check firewall settings"
-            elif echo "$output" | grep -q "No space left"; then
-                echo ""
-                warn "Diagnosis: No disk space"
-                info "Possible fixes:"
-                echo "  1. Free up space: df -h"
-                echo "  2. Clear temp: rm -rf /tmp/*"
-                echo "  3. Use different location: TMPDIR=/other/path ./install.sh"
-            fi
-            
-            exit 1
-        fi
-        
-        cd kodegen
+        exit 1
     fi
     
-    # Extract version from Cargo.toml (reusing existing function)
+    cd kodegen
+    
+    # Specify which paths to actually checkout
+    if ! output=$(git sparse-checkout set \
+        Cargo.toml \
+        Cargo.lock \
+        rust-toolchain.toml \
+        packages/ 2>&1); then
+        warn "Sparse checkout setup failed, falling back to full checkout"
+        # Fall back: checkout everything
+        git sparse-checkout disable 2>/dev/null || true
+    else
+        success "Sparse checkout configured (packages only)"
+    fi
+    
+    # Extract version from Cargo.toml
     local version=$(get_repo_version "packages/server/Cargo.toml")
     
     if [[ -n "$version" ]]; then
@@ -1233,13 +1447,13 @@ main() {
     # Check for existing installation early (unless --force is used)
     check_existing_installation
     
+    # Install system dependencies (needed for both binary and cargo)
     install_deps
-    install_rust
     
-    # Only clone and install if needed
+    # Only install if needed
     if [[ "$FORCE_INSTALL" == true ]] || ! command -v kodegen >/dev/null 2>&1 || ! command -v kodegend >/dev/null 2>&1; then
-        clone_repository
-        install_project
+        # Try binary first, fallback to cargo
+        install_from_binary_or_cargo
     fi
     
     auto_configure_clients

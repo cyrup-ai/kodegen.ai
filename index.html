@@ -278,6 +278,194 @@
             transform: translateX(0);
         }
         
+        /* Download divider */
+        .download-divider {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+        
+        .download-divider::before,
+        .download-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(24, 202, 155, 0.3) 50%, 
+                transparent 100%);
+        }
+        
+        .download-divider::before {
+            left: 0;
+        }
+        
+        .download-divider::after {
+            right: 0;
+        }
+        
+        .download-divider span {
+            color: rgba(24, 202, 155, 0.5);
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0 1rem;
+            background: #051226;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Download section */
+        .download-section {
+            margin-top: 2rem;
+        }
+        
+        .download-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .download-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #CCCCCC;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .version-badge {
+            background: rgba(24, 202, 155, 0.15);
+            border: 1px solid rgba(24, 202, 155, 0.4);
+            color: #18ca9b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+        
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .download-btn {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(24, 202, 155, 0.3);
+            border-radius: 10px;
+            padding: 1.2rem 1rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(24, 202, 155, 0.1), 
+                transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .download-btn:hover::before {
+            left: 100%;
+        }
+        
+        .download-btn:hover {
+            background: rgba(24, 202, 155, 0.1);
+            border-color: #18ca9b;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(24, 202, 155, 0.2);
+        }
+        
+        .download-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .download-btn i {
+            font-size: 2rem;
+            color: #18ca9b;
+            min-width: 2rem;
+        }
+        
+        .btn-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            flex: 1;
+            text-align: left;
+        }
+        
+        .platform-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ffffff;
+            display: block;
+        }
+        
+        .platform-arch {
+            font-size: 0.75rem;
+            color: #18ca9b;
+            display: block;
+            font-weight: 500;
+        }
+        
+        .file-size {
+            font-size: 0.7rem;
+            color: #999;
+            display: block;
+            margin-top: 0.2rem;
+        }
+        
+        .download-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        
+        .github-releases-link {
+            color: rgba(24, 202, 155, 0.7);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .github-releases-link:hover {
+            color: #18ca9b;
+        }
+        
+        .github-releases-link i {
+            font-size: 1rem;
+        }
+        
         .footer {
             background: #051226;
             padding: 2rem;
@@ -470,9 +658,25 @@
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
+
+            .download-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         @media (max-width: 600px) {
+            .download-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .download-btn {
+                padding: 1rem;
+            }
+            
+            .download-divider::before,
+            .download-divider::after {
+                width: 35%;
+            }
             .install-command {
                 padding: 1.5rem;
                 display: flex !important;
@@ -513,6 +717,72 @@
             <div class="install-command" style="display: block;">
                 <button class="copy-btn" onclick="copyToClipboard(event)">COPY</button>
                 <code>curl -fsSL https://kodegen.ai/install | sh</code>
+            </div>
+            
+            <div class="download-divider">
+                <span>or</span>
+            </div>
+            
+            <div class="download-section">
+                <div class="download-header">
+                    <h3>Download Latest Release</h3>
+                    <span class="version-badge" id="version-badge">Loading...</span>
+                </div>
+                <div class="download-grid">
+                    <a href="#" class="download-btn" id="macos-intel" data-platform="x86_64-apple-darwin">
+                        <i class="fab fa-apple"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">macOS Intel</span>
+                            <span class="platform-arch">x86_64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="macos-silicon" data-platform="aarch64-apple-darwin">
+                        <i class="fab fa-apple"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">macOS Silicon</span>
+                            <span class="platform-arch">ARM64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="windows-x64" data-platform="x86_64-pc-windows-msvc">
+                        <i class="fab fa-windows"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Windows</span>
+                            <span class="platform-arch">x64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="linux-x64" data-platform="x86_64-unknown-linux-gnu">
+                        <i class="fab fa-linux"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Linux</span>
+                            <span class="platform-arch">x86_64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="linux-arm64" data-platform="aarch64-unknown-linux-gnu">
+                        <i class="fab fa-linux"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Linux</span>
+                            <span class="platform-arch">ARM64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="windows-x86" data-platform="i686-pc-windows-msvc">
+                        <i class="fab fa-windows"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Windows</span>
+                            <span class="platform-arch">x86</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="download-footer">
+                    <a href="https://github.com/cyrup-ai/kodegen/releases" target="_blank" class="github-releases-link">
+                        <i class="fab fa-github"></i> View All Releases
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -705,6 +975,98 @@ spawn_claude_agent({<br>
                 window.getSelection().addRange(range);
             });
         });
+        
+        // Fetch and populate GitHub releases
+        async function loadGitHubReleases() {
+            const REPO_OWNER = 'cyrup-ai';
+            const REPO_NAME = 'kodegen';
+            const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`;
+            
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const release = await response.json();
+                const version = release.tag_name || release.name || 'Unknown';
+                
+                // Update version badge
+                const versionBadge = document.getElementById('version-badge');
+                if (versionBadge) {
+                    versionBadge.textContent = version;
+                }
+                
+                // Asset filename patterns
+                const assetPatterns = {
+                    'macos-intel': /sweetmcp-daemon-x86_64-apple-darwin\.tar\.gz$/,
+                    'macos-silicon': /sweetmcp-daemon-aarch64-apple-darwin\.tar\.gz$/,
+                    'windows-x64': /sweetmcp-daemon-x86_64-pc-windows-msvc\.zip$/,
+                    'windows-x86': /sweetmcp-daemon-i686-pc-windows-msvc\.zip$/,
+                    'linux-x64': /sweetmcp-daemon-x86_64-unknown-linux-gnu\.tar\.gz$/,
+                    'linux-arm64': /sweetmcp-daemon-aarch64-unknown-linux-gnu\.tar\.gz$/
+                };
+                
+                // Process each asset
+                release.assets.forEach(asset => {
+                    // Find matching button
+                    for (const [buttonId, pattern] of Object.entries(assetPatterns)) {
+                        if (pattern.test(asset.name)) {
+                            const btn = document.getElementById(buttonId);
+                            if (btn) {
+                                // Update download link
+                                btn.href = asset.browser_download_url;
+                                btn.classList.remove('disabled');
+                                
+                                // Update file size
+                                const fileSizeSpan = btn.querySelector('.file-size');
+                                if (fileSizeSpan) {
+                                    const sizeMB = (asset.size / (1024 * 1024)).toFixed(1);
+                                    fileSizeSpan.textContent = `${sizeMB} MB`;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                });
+                
+                // Check for any buttons still loading (asset not found)
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    const fileSizeSpan = btn.querySelector('.file-size');
+                    if (fileSizeSpan && fileSizeSpan.textContent === 'Loading...') {
+                        fileSizeSpan.textContent = 'Not Available';
+                        btn.classList.add('disabled');
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error fetching GitHub releases:', error);
+                
+                // Update UI to show error state
+                const versionBadge = document.getElementById('version-badge');
+                if (versionBadge) {
+                    versionBadge.textContent = 'Error Loading';
+                    versionBadge.style.borderColor = 'rgba(255, 100, 100, 0.4)';
+                    versionBadge.style.color = '#ff6464';
+                }
+                
+                // Update all buttons to show error
+                document.querySelectorAll('.download-btn').forEach(btn => {
+                    const fileSizeSpan = btn.querySelector('.file-size');
+                    if (fileSizeSpan) {
+                        fileSizeSpan.textContent = 'API Error';
+                    }
+                    btn.classList.add('disabled');
+                });
+            }
+        }
+        
+        // Load releases when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadGitHubReleases);
+        } else {
+            loadGitHubReleases();
+        }
     </script>
 </body>
 </html>

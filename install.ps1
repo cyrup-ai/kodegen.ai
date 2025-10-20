@@ -58,9 +58,24 @@ function Rollback-Installation {
     Write-Warn "Rolling back partial installation..."
     Write-Host ""
     
-    # Remove installed binaries in reverse order
+    # Check if MSI installation is in progress or completed
+    $msiInstallDir = if ([Environment]::Is64BitOperatingSystem) {
+        "${env:ProgramFiles}\kodegen"
+    } else {
+        "${env:ProgramFiles(x86)}\kodegen"
+    }
+    
+    if (Test-Path $msiInstallDir) {
+        Write-Info "MSI installation detected - use Windows 'Add or Remove Programs' to uninstall"
+        Write-Dim "  1. Open Settings → Apps → Apps & features"
+        Write-Dim "  2. Search for 'kodegen'"
+        Write-Dim "  3. Click 'Uninstall'"
+        Write-Host ""
+    }
+    
+    # Remove cargo-installed binaries if present
     if ($script:InstallationState.DaemonInstalled) {
-        Write-Info "Removing installed daemon..."
+        Write-Info "Removing cargo-installed daemon..."
         $daemonPath = "$env:USERPROFILE\.cargo\bin\kodegend.exe"
         if (Test-Path $daemonPath) {
             Remove-Item $daemonPath -Force -ErrorAction SilentlyContinue
@@ -69,7 +84,7 @@ function Rollback-Installation {
     }
     
     if ($script:InstallationState.McpServerInstalled) {
-        Write-Info "Removing installed MCP server..."
+        Write-Info "Removing cargo-installed MCP server..."
         $serverPath = "$env:USERPROFILE\.cargo\bin\kodegen.exe"
         if (Test-Path $serverPath) {
             Remove-Item $serverPath -Force -ErrorAction SilentlyContinue
@@ -78,10 +93,7 @@ function Rollback-Installation {
     }
     
     Write-Host ""
-    Write-Success "Rollback completed - system restored to pre-installation state"
-    Write-Host ""
     Write-Info "Please review the error above and try again"
-    Write-Info "If the issue persists, please report it:"
     Write-Dim "  https://github.com/cyrup-ai/kodegen/issues"
     Write-Host ""
 }
@@ -405,6 +417,237 @@ function Clone-Repository {
     Write-Dim "  Location: $(Get-Location)"
 }
 
+# Check if platform has pre-built binary available
+function Test-BinaryAvailable {
+    param([string]$Platform)
+    
+    switch ($Platform) {
+        "x86_64-pc-windows-msvc" { return $true }
+        "i686-pc-windows-msvc" { return $true }
+        default { return $false }
+    }
+}
+
+# Download and install from GitHub release MSI
+function Install-FromMsi {
+    param([string]$Platform)
+    
+    Write-Info "Attempting MSI installation for $Platform..."
+    
+    # Map platform to MSI architecture
+    $msiArch = switch ($Platform) {
+        "x86_64-pc-windows-msvc" { "x64" }
+        "i686-pc-windows-msvc" { "x86" }
+        default { 
+            Write-Warn "No MSI available for platform: $Platform"
+            return $false 
+        }
+    }
+    
+    # GitHub API configuration
+    $repoOwner = "cyrup-ai"
+    $repoName = "kodegen"
+    $apiUrl = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+    
+    try {
+        # Fetch release information
+        Write-Info "Fetching latest release from GitHub..."
+        $release = Invoke-RestMethod -Uri $apiUrl -Method Get -ErrorAction Stop
+        
+        if (-not $release) {
+            Write-Warn "Failed to fetch release information"
+            return $false
+        }
+        
+        $versionTag = $release.tag_name
+        Write-Info "Latest release: $versionTag"
+        
+    } catch {
+        Write-Warn "GitHub API request failed: $($_.Exception.Message)"
+        return $false
+    }
+    
+    # Find MSI asset matching architecture
+    # Pattern: kodegen_{version}_{arch}.msi
+    $msiAsset = $release.assets | Where-Object { 
+        $_.name -like "kodegen_*_$msiArch.msi" 
+    } | Select-Object -First 1
+    
+    if (-not $msiAsset) {
+        Write-Warn "No MSI installer found for $msiArch architecture"
+        Write-Dim "Available assets:"
+        $release.assets | ForEach-Object {
+            Write-Dim "  - $($_.name)"
+        }
+        return $false
+    }
+    
+    Write-Info "Found installer: $($msiAsset.name) ($('{0:N2}' -f ($msiAsset.size / 1MB)) MB)"
+    Write-Info "Downloading from: $($msiAsset.browser_download_url)"
+    
+    # Create temporary directory with unique name
+    $tempDir = New-Item -ItemType Directory -Path $env:TEMP -Name "kodegen-install-$(Get-Random)" -Force
+    
+    try {
+        # Download MSI with retry logic
+        $msiPath = Join-Path $tempDir.FullName $msiAsset.name
+        
+        $downloadSuccess = Download-WithRetry `
+            -Url $msiAsset.browser_download_url `
+            -OutFile $msiPath `
+            -MaxRetries 3 `
+            -TimeoutSec 30 `
+            -MinSizeBytes 1MB
+        
+        if (-not $downloadSuccess) {
+            Write-Error "Failed to download MSI installer"
+            return $false
+        }
+        
+        # Verify download succeeded
+        if (-not (Test-Path $msiPath)) {
+            Write-Error "Downloaded MSI not found at: $msiPath"
+            return $false
+        }
+        
+        $fileSize = (Get-Item $msiPath).Length
+        Write-Success "Downloaded MSI: $($msiAsset.name) ($fileSize bytes)"
+        
+        # Install MSI
+        Write-Host ""
+        Write-Info "Installing KODEGEN.ᴀɪ from MSI package..."
+        Write-Dim "This will install to: C:\Program Files\kodegen\"
+        Write-Host ""
+        
+        # Run msiexec with UI
+        # /i = install
+        # /qb = basic UI with progress bar
+        # /norestart = don't restart computer automatically
+        $msiArgs = @(
+            "/i"
+            "`"$msiPath`""
+            "/qb"
+            "/norestart"
+        )
+        
+        Write-Dim "Running: msiexec $($msiArgs -join ' ')"
+        
+        $process = Start-Process -FilePath "msiexec.exe" `
+            -ArgumentList $msiArgs `
+            -Wait `
+            -PassThru `
+            -NoNewWindow
+        
+        $exitCode = $process.ExitCode
+        
+        # MSI exit codes:
+        # 0 = success
+        # 1641 = success, restart initiated
+        # 3010 = success, restart required
+        # Other = failure
+        if ($exitCode -eq 0 -or $exitCode -eq 1641 -or $exitCode -eq 3010) {
+            Write-Host ""
+            Write-Success "MSI installation completed successfully!"
+            
+            if ($exitCode -eq 3010) {
+                Write-Warn "A restart may be required to complete installation"
+            }
+            
+            # Verify installation
+            $installDir = if ([Environment]::Is64BitOperatingSystem) {
+                "${env:ProgramFiles}\kodegen"
+            } else {
+                "${env:ProgramFiles(x86)}\kodegen"
+            }
+            
+            $binaries = @("kodegen.exe", "kodegend.exe", "kodegen_install.exe")
+            $allFound = $true
+            
+            foreach ($binary in $binaries) {
+                $binaryPath = Join-Path $installDir $binary
+                if (Test-Path $binaryPath) {
+                    Write-Success "Verified: $binary"
+                } else {
+                    Write-Warn "Not found: $binary"
+                    $allFound = $false
+                }
+            }
+            
+            if ($allFound) {
+                Write-Success "All binaries installed and verified!"
+                $script:InstallationState.McpServerInstalled = $true
+                $script:InstallationState.DaemonInstalled = $true
+                
+                # Add install directory to PATH for current session
+                $env:PATH = "$installDir;$env:PATH"
+                
+                # Add to persistent user PATH
+                Add-ToPersistentPath -PathToAdd $installDir
+                
+                return $true
+            } else {
+                Write-Error "MSI installation completed but binaries not found"
+                return $false
+            }
+            
+        } else {
+            Write-Host ""
+            Write-Error "MSI installation failed (exit code: $exitCode)"
+            Write-Host ""
+            
+            # Common MSI error codes
+            switch ($exitCode) {
+                1602 { Write-Info "User cancelled installation" }
+                1603 { Write-Info "Fatal error during installation" }
+                1618 { Write-Info "Another installation is in progress" }
+                1619 { Write-Info "Installation package could not be opened" }
+                1620 { Write-Info "Installation package could not be opened (verify file integrity)" }
+                1633 { Write-Info "Platform not supported (architecture mismatch)" }
+                default { Write-Info "See: https://learn.microsoft.com/en-us/windows/win32/msi/error-codes" }
+            }
+            
+            return $false
+        }
+        
+    } catch {
+        Write-Error "MSI installation failed: $($_.Exception.Message)"
+        return $false
+    } finally {
+        # Cleanup temporary directory
+        if (Test-Path $tempDir.FullName) {
+            Remove-Item -Path $tempDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+# Try MSI installation, fallback to cargo on failure
+function Install-FromBinaryOrCargo {
+    param([string]$Platform)
+    
+    # Check if platform has binary available
+    if (Test-BinaryAvailable -Platform $Platform) {
+        Write-Info "Pre-built installer available for $Platform"
+        
+        # Try MSI installation first (preferred)
+        if (Install-FromMsi -Platform $Platform) {
+            Write-Success "Installed from MSI in <60 seconds!"
+            return $true
+        }
+        
+        Write-Warn "MSI installation failed"
+        Write-Warn "Falling back to cargo install (this will take 10-15 minutes)..."
+    } else {
+        Write-Info "No pre-built binary for $Platform"
+        Write-Info "Will compile from source (10-15 minutes)..."
+    }
+    
+    # Fallback: install from source using cargo
+    Install-Rust
+    Clone-Repository
+    Install-Project
+    return $true
+}
+
 # Verify binary installation
 function Test-BinaryInstalled {
     param(
@@ -544,18 +787,37 @@ function Install-Project {
 
 # Auto-configure all detected MCP clients
 function Auto-Configure-Clients {
-    Write-Info "Auto-configuring detected MCP clients..."
+    Write-Info "Checking MCP client configuration..."
 
+    # Add install directories to PATH if they exist
+    # Check MSI install directory first
+    $installDir = if ([Environment]::Is64BitOperatingSystem) {
+        "${env:ProgramFiles}\kodegen"
+    } else {
+        "${env:ProgramFiles(x86)}\kodegen"
+    }
+    
+    if (Test-Path $installDir) {
+        $env:PATH = "$installDir;$env:PATH"
+    }
+    
+    # Also check cargo bin (if installed via cargo)
+    $cargoBin = "$env:USERPROFILE\.cargo\bin"
+    if (Test-Path $cargoBin) {
+        $env:PATH = "$cargoBin;$env:PATH"
+    }
+    
     # Run kodegen install
     try {
         kodegen install
         if ($LASTEXITCODE -eq 0) {
-            Write-Success "MCP clients configured automatically!"
+            Write-Success "MCP clients configured!"
         } else {
-            Write-Warn "Auto-configuration failed, you can run 'kodegen install' manually later"
+            Write-Warn "Auto-configuration completed with warnings"
         }
     } catch {
-        Write-Warn "Auto-configuration failed, you can run 'kodegen install' manually later"
+        Write-Warn "Auto-configuration failed: $($_.Exception.Message)"
+        Write-Info "You can run 'kodegen install' manually later"
     }
 }
 
@@ -598,15 +860,32 @@ function Test-CanElevate {
 function Install-DaemonService {
     Write-Info "Installing daemon service..."
 
-    # Ensure kodegend is available
-    $cargoPath = "$env:USERPROFILE\.cargo\bin"
-    $env:PATH = "$cargoPath;$env:PATH"
+    # Ensure kodegend is available - check both MSI and cargo locations
+    $msiInstallDir = if ([Environment]::Is64BitOperatingSystem) {
+        "${env:ProgramFiles}\kodegen"
+    } else {
+        "${env:ProgramFiles(x86)}\kodegen"
+    }
     
-    $kodegendPath = "$cargoPath\kodegend.exe"
+    $cargoPath = "$env:USERPROFILE\.cargo\bin"
+    
+    # Add both to PATH
+    if (Test-Path $msiInstallDir) {
+        $env:PATH = "$msiInstallDir;$env:PATH"
+    }
+    if (Test-Path $cargoPath) {
+        $env:PATH = "$cargoPath;$env:PATH"
+    }
+    
+    # Check MSI location first, then cargo
+    $kodegendPath = Join-Path $msiInstallDir "kodegend.exe"
     if (-not (Test-Path $kodegendPath)) {
-        Write-Error "kodegend binary not found at $kodegendPath"
-        Write-Info "Please ensure daemon was installed correctly"
-        return
+        $kodegendPath = "$cargoPath\kodegend.exe"
+        if (-not (Test-Path $kodegendPath)) {
+            Write-Error "kodegend binary not found in MSI or cargo locations"
+            Write-Info "Please ensure daemon was installed correctly"
+            return
+        }
     }
     
     # Check if service already installed
@@ -712,9 +991,10 @@ function Main {
     try {
         Detect-Platform
         Check-Requirements
-        Install-Rust
-        Clone-Repository
-        Install-Project
+        
+        # Try binary first, fallback to cargo
+        Install-FromBinaryOrCargo -Platform $global:Platform
+        
         Auto-Configure-Clients
         Install-DaemonService
 
