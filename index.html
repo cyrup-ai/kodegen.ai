@@ -543,6 +543,16 @@
             line-height: 1.7;
             margin-bottom: 2rem;
         }
+        
+        .intro-content p a {
+            color: #ffffff;
+            text-decoration: underline;
+            transition: opacity 0.3s ease;
+        }
+        
+        .intro-content p a:hover {
+            opacity: 0.8;
+        }
 
         .intro-stats {
             display: grid;
@@ -712,79 +722,6 @@
 <body>
     <div class="white-section">
         <img src="assets/banner.png" alt="KODEGEN.ᴀɪ" class="kodegen-logo">
-        
-        <div class="installer-section">
-            <div class="install-command" style="display: block;">
-                <button class="copy-btn" onclick="copyToClipboard(event)">COPY</button>
-                <code>curl -fsSL https://kodegen.ai/install | sh</code>
-            </div>
-            
-            <div class="download-divider">
-                <span>or</span>
-            </div>
-            
-            <div class="download-section">
-                <div class="download-header">
-                    <h3>Download Latest Release</h3>
-                    <span class="version-badge" id="version-badge">Loading...</span>
-                </div>
-                <div class="download-grid">
-                    <a href="#" class="download-btn" id="macos-intel" data-platform="x86_64-apple-darwin">
-                        <i class="fab fa-apple"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">macOS Intel</span>
-                            <span class="platform-arch">x86_64</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="download-btn" id="macos-silicon" data-platform="aarch64-apple-darwin">
-                        <i class="fab fa-apple"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">macOS Silicon</span>
-                            <span class="platform-arch">ARM64</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="download-btn" id="windows-x64" data-platform="x86_64-pc-windows-msvc">
-                        <i class="fab fa-windows"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">Windows</span>
-                            <span class="platform-arch">x64</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="download-btn" id="linux-x64" data-platform="x86_64-unknown-linux-gnu">
-                        <i class="fab fa-linux"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">Linux</span>
-                            <span class="platform-arch">x86_64</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="download-btn" id="linux-arm64" data-platform="aarch64-unknown-linux-gnu">
-                        <i class="fab fa-linux"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">Linux</span>
-                            <span class="platform-arch">ARM64</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                    <a href="#" class="download-btn" id="windows-x86" data-platform="i686-pc-windows-msvc">
-                        <i class="fab fa-windows"></i>
-                        <div class="btn-content">
-                            <span class="platform-name">Windows</span>
-                            <span class="platform-arch">x86</span>
-                            <span class="file-size">Loading...</span>
-                        </div>
-                    </a>
-                </div>
-                <div class="download-footer">
-                    <a href="https://github.com/cyrup-ai/kodegen/releases" target="_blank" class="github-releases-link">
-                        <i class="fab fa-github"></i> View All Releases
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Product Intro Section -->
@@ -813,7 +750,7 @@ spawn_claude_agent({<br>
 
             <div class="intro-content">
                 <h2>Ultimate MCP Auto-Coding Toolset</h2>
-                <p>KODEGEN.ᴀɪ delivers a blazing-fast Rust-native MCP Server (Model Context Protocol) with 33 elite auto-coding tools designed for professional, autonomous code generation and predictable high-quality results. Every tool has been thoughtfully hyper-optimized for speed (code it faster) and context efficiency (code it cheaper).</p>
+                <p>KODEGEN.ᴀɪ delivers a blazing-fast Rust-native MCP Server (<a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol</a>) with 33 elite auto-coding tools designed for professional, autonomous code generation and predictable high-quality results. Every tool has been thoughtfully hyper-optimized for speed (code it faster) and context efficiency (code it cheaper).</p>
 
                 <div class="intro-stats">
                     <div class="stat-box">
@@ -829,6 +766,82 @@ spawn_claude_agent({<br>
                         <p>N-Depth Sub-agent Delegation</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Installer Section -->
+    <div class="white-section">
+        <div class="installer-section">
+            <div class="download-section">
+                <div class="download-header">
+                    <h3>Download Latest Release</h3>
+                    <span class="version-badge" id="version-badge">Loading...</span>
+                </div>
+                <div class="download-grid">
+                    <a href="#" class="download-btn" id="macos-silicon" data-platform="aarch64-apple-darwin">
+                        <i class="fab fa-apple"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">macOS Silicon</span>
+                            <span class="platform-arch">ARM64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="linux-x64" data-platform="x86_64-unknown-linux-gnu">
+                        <i class="fab fa-linux"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Linux</span>
+                            <span class="platform-arch">x86_64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="windows-x64" data-platform="x86_64-pc-windows-msvc">
+                        <i class="fab fa-windows"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Windows</span>
+                            <span class="platform-arch">x64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="macos-intel" data-platform="x86_64-apple-darwin">
+                        <i class="fab fa-apple"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">macOS Intel</span>
+                            <span class="platform-arch">x86_64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="linux-arm64" data-platform="aarch64-unknown-linux-gnu">
+                        <i class="fab fa-linux"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Linux</span>
+                            <span class="platform-arch">ARM64</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                    <a href="#" class="download-btn" id="windows-x86" data-platform="i686-pc-windows-msvc">
+                        <i class="fab fa-windows"></i>
+                        <div class="btn-content">
+                            <span class="platform-name">Windows</span>
+                            <span class="platform-arch">x86</span>
+                            <span class="file-size">Loading...</span>
+                        </div>
+                    </a>
+                </div>
+                <div class="download-footer">
+                    <a href="https://github.com/cyrup-ai/kodegen/releases" target="_blank" class="github-releases-link">
+                        <i class="fab fa-github"></i> View All Releases
+                    </a>
+                </div>
+            </div>
+            
+            <div class="download-divider">
+                <span>or</span>
+            </div>
+            
+            <div class="install-command" style="display: block;">
+                <button class="copy-btn" onclick="copyToClipboard(event)">COPY</button>
+                <code>curl -fsSL https://kodegen.ai/install | sh</code>
             </div>
         </div>
     </div>
@@ -875,13 +888,13 @@ spawn_claude_agent({<br>
         </div>
     </div>
     
-        <div class="hero-section">
+    <div class="hero-section">
         <video autoplay muted loop playsinline class="kodegen-video">
             <source src="assets/kodegen_oceanic.mp4" type="video/mp4">
         </video>
     </div>
     
-        <div class="footer">
+    <div class="footer">
         <p>
             <a href="https://github.com/cyrup-ai/kodegen" target="_blank">GitHub</a> •
             <a href="docs/index.html">Documentation</a> •
