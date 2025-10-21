@@ -641,246 +641,206 @@ cargo install --path . \
             </section>
 
             <section id="tools" class="section">
-                <h2>Tool Reference</h2>
+                <h2>What Your Coding Agent Can Do</h2>
+                <p>KODEGEN empowers LLM coding agents with 75 specialized tools. Here's what makes each category special:</p>
 
-                <h3>Filesystem Tools (14 tools)</h3>
+                <h3>🗂️ Filesystem Tools (14 tools)</h3>
 
-                <h4><code>read_file</code></h4>
-                <p>Read file contents with offset/length support for massive files.</p>
-                <pre><code>read_file({
-  "file_path": "src/main.rs",
-  "offset": 0,
-  "limit": 100
-})</code></pre>
-                <span class="badge">Read-only</span>
+                <h4>📖 Memory-Efficient File Reading</h4>
+                <p><strong>What it enables:</strong> Your agent can read any file - from tiny configs to gigabyte-sized logs - without loading everything into memory.</p>
+                <p><strong>Technical innovations:</strong></p>
+                <ul>
+                    <li><strong>Ring Buffer Streaming:</strong> Reading the last 100 lines of a 1GB file uses only ~10KB of memory thanks to VecDeque circular buffer implementation</li>
+                    <li><strong>One-Pass Efficiency:</strong> Counts total lines while reading, not in a separate pass - O(n) instead of O(2n)</li>
+                    <li><strong>Negative Offset Magic:</strong> Want the last 30 lines? Just specify offset: -30 and the agent gets tail behavior automatically</li>
+                    <li><strong>Smart Image Handling:</strong> Automatically detects PNG, JPEG, GIF, WebP and returns base64-encoded data</li>
+                    <li><strong>URL Support:</strong> Can fetch files from HTTP/HTTPS endpoints with 30-second timeout protection</li>
+                    <li><strong>Helpful Annotations:</strong> Partial reads include headers like "[Reading lines 100-200 of 1000 total]"</li>
+                </ul>
 
-                <h4><code>write_file</code></h4>
-                <p>Write or append content to files with atomic operations.</p>
-                <pre><code>write_file({
-  "file_path": "output.txt",
-  "content": "Hello, world!",
-  "append": false
-})</code></pre>
-                <span class="badge">Destructive</span>
+                <h4>✏️ Intelligent Code Editing</h4>
+                <p><strong>What it enables:</strong> Surgical precision edits with automatic error recovery when exact matches fail.</p>
+                <p><strong>Technical innovations:</strong></p>
+                <ul>
+                    <li><strong>Fuzzy Matching Fallback:</strong> When exact match fails, automatically tries fuzzy search with configurable similarity threshold (default: 0.8)</li>
+                    <li><strong>Character-Level Diff Analysis:</strong> Shows exactly what's different with Unicode-aware character analysis</li>
+                    <li><strong>Whitespace Detection:</strong> Identifies when differences are only whitespace (spaces vs tabs, CRLF vs LF)</li>
+                    <li><strong>Line Ending Normalization:</strong> Automatically handles Windows (CRLF) vs Unix (LF) line endings</li>
+                    <li><strong>Intelligent Error Messages:</strong> When fuzzy match found, displays character codes for invisible characters and suggests fixes</li>
+                    <li><strong>Fire-and-Forget Logging:</strong> Async logging that never blocks execution, tracking all edit attempts for debugging</li>
+                    <li><strong>Expected Count Validation:</strong> Warns if actual replacement count differs from expected</li>
+                </ul>
 
-                <h4><code>edit_block</code></h4>
-                <p>Surgical text replacement with automatic fuzzy matching.</p>
-                <pre><code>edit_block({
-  "file_path": "src/main.rs",
-  "old_string": "fn process_data",
-  "new_string": "async fn process_data"
-})</code></pre>
-                <span class="badge">Destructive</span>
+                <h4>🔍 Progressive Search</h4>
+                <p><strong>What it enables:</strong> Stream search results as they're found instead of waiting for complete scan.</p>
+                <ul>
+                    <li><strong>Streaming Results:</strong> Get results progressively, cancel early when found what you need</li>
+                    <li><strong>Regex Support:</strong> Full regular expression pattern matching across codebases</li>
+                    <li><strong>Concurrent Traversal:</strong> Multi-threaded directory walking for faster results</li>
+                </ul>
 
-                <h4><code>start_search</code></h4>
-                <p>Start streaming search across codebase with regex support.</p>
-                <pre><code>start_search({
-  "pattern": "TODO:",
-  "path": ".",
-  "regex": false
-})</code></pre>
-                <span class="badge">Read-only</span>
+                <h4>📦 Batch Operations</h4>
+                <p><strong>What it enables:</strong> Read multiple files in parallel, move/delete/create with atomic operations.</p>
+                <ul>
+                    <li><strong>Parallel Reading:</strong> <code>read_multiple_files</code> processes files concurrently</li>
+                    <li><strong>Atomic Moves:</strong> Safe file relocation with validation</li>
+                    <li><strong>Smart Metadata:</strong> <code>get_file_info</code> returns size, timestamps, permissions, line counts</li>
+                </ul>
 
-                <h4><code>list_directory</code></h4>
-                <p>List directory contents with metadata.</p>
-                <pre><code>list_directory({
-  "path": "src/"
-})</code></pre>
-                <span class="badge">Read-only</span>
+                <h3>💻 Terminal Tools (5 tools)</h3>
 
-                <p><em>And 9 more filesystem tools: <code>read_multiple_files</code>, <code>move_file</code>, <code>delete_file</code>, <code>delete_directory</code>, <code>create_directory</code>, <code>get_file_info</code>, <code>get_more_search_results</code>, <code>stop_search</code>, <code>list_searches</code></em></p>
+                <h4>🖥️ Full Pseudoterminal Emulation</h4>
+                <p><strong>What it enables:</strong> LLM agents can run commands exactly like you would in a terminal - builds, tests, interactive CLIs, anything.</p>
+                <p><strong>Technical innovations:</strong></p>
+                <ul>
+                    <li><strong>True PTY Support:</strong> Full VT100 pseudoterminal implementation, not just command execution</li>
+                    <li><strong>Smart State Detection:</strong> Automatically detects three states: command finished, still running, or waiting for REPL input</li>
+                    <li><strong>REPL Recognition:</strong> Knows when interactive prompts (Python >>>, Node >, etc.) are ready for input</li>
+                    <li><strong>Session Management:</strong> Track multiple running processes by PID, read output streams independently</li>
+                    <li><strong>Output Streaming:</strong> Real-time output access for long-running builds without blocking</li>
+                    <li><strong>Command Validation:</strong> Security layer blocks dangerous commands (rm -rf, sudo, etc.) with smart parsing</li>
+                    <li><strong>Initial Delay Control:</strong> Configurable wait (default 100ms) for quick commands to complete before first response</li>
+                </ul>
 
-                <h3>Terminal Tools (5 tools)</h3>
+                <h4>🎯 Interactive Command Sessions</h4>
+                <p><strong>What it enables:</strong> Your coding assistant can interact with REPLs, debuggers, and interactive CLIs just like a human developer.</p>
+                <ul>
+                    <li><strong>Send Input:</strong> Type into running sessions (Python REPL, database CLI, interactive installers)</li>
+                    <li><strong>Read Output:</strong> Stream output in real-time as commands execute</li>
+                    <li><strong>Stop Commands:</strong> Gracefully terminate long-running processes</li>
+                    <li><strong>List Sessions:</strong> See all active terminal sessions with status</li>
+                </ul>
 
-                <h4><code>start_terminal_command</code></h4>
-                <p>Spawn full VT100 pseudoterminal session.</p>
-                <pre><code>start_terminal_command({
-  "command": "cargo build --release",
-  "working_directory": "."
-})</code></pre>
-                <span class="badge">Destructive</span>
+                <h3>🧠 Sequential Thinking (1 tool)</h3>
 
-                <h4><code>read_terminal_output</code></h4>
-                <p>Read real-time output from terminal session.</p>
-                <pre><code>read_terminal_output({
-  "session_id": "abc123"
-})</code></pre>
-                <span class="badge">Read-only</span>
+                <h4>🌊 Stateful Reasoning Engine</h4>
+                <p><strong>What it enables:</strong> Agents can break down complex problems across multiple reasoning steps, branch into parallel exploration, and revise thinking as insights emerge.</p>
+                <p><strong>Technical innovations:</strong></p>
+                <ul>
+                    <li><strong>Actor-Model Concurrency:</strong> Each session runs in its own actor task with exclusive state ownership - completely lock-free!</li>
+                    <li><strong>MPSC Message Passing:</strong> Commands sent via channels, zero shared memory contention</li>
+                    <li><strong>Thought Branching:</strong> Explore multiple solution paths simultaneously - "What if we try REST vs GraphQL?"</li>
+                    <li><strong>Revision Support:</strong> Mark thoughts as revising previous reasoning when new insights emerge</li>
+                    <li><strong>Unlimited Context:</strong> Maintain complete thought history across extended problem-solving sessions</li>
+                    <li><strong>Auto-Persistence:</strong> Orphaned sessions automatically saved to disk, cleaned up after 24 hours</li>
+                    <li><strong>Colored Terminal Output:</strong> Thought streams rendered with syntax highlighting to stderr for debugging</li>
+                    <li><strong>Auto-Termination:</strong> Session actor gracefully terminates when thinking is complete</li>
+                </ul>
 
-                <p><em>And 3 more terminal tools: <code>send_terminal_input</code>, <code>stop_terminal_command</code>, <code>list_terminal_commands</code></em></p>
+                <h3>🔮 Agent Orchestration (5 tools)</h3>
 
-                <h3>Sequential Thinking (1 tool)</h3>
+                <h4>🤖 True N-Depth Agent Delegation</h4>
+                <p><strong>What it enables:</strong> Agents can spawn specialized sub-agents, which can spawn their own sub-agents, creating hierarchical agent pyramids for complex tasks.</p>
+                <p><strong>Why it's powerful:</strong></p>
+                <ul>
+                    <li><strong>Infinite Depth:</strong> No arbitrary limits - agents spawn agents spawn agents as deep as needed</li>
+                    <li><strong>Custom Prompts:</strong> Full control over sub-agent instructions via prompt templates</li>
+                    <li><strong>Real-Time Streaming:</strong> Watch sub-agent output as it generates, not after completion</li>
+                    <li><strong>Parallel Execution:</strong> Spawn multiple specialist agents working on different aspects simultaneously</li>
+                    <li><strong>Conversation Management:</strong> Send follow-up prompts, read responses, terminate when done</li>
+                    <li><strong>Coordinated Workflows:</strong> Main agent orchestrates research agent + code generation agent + testing agent</li>
+                </ul>
 
-                <h4><code>sequential_thinking</code></h4>
-                <p>Break down complex problems with stateful reasoning sessions.</p>
-                <pre><code>sequential_thinking({
-  "thought": "Analyzing the architecture patterns...",
-  "thought_number": 1,
-  "session_id": "planning-session-1"
-})</code></pre>
-                <span class="badge">Stateful</span>
+                <h3>📝 Prompt Management (4 tools)</h3>
 
-                <h3>Agent Orchestration (5 tools)</h3>
+                <h4>🎨 Template Library with Jinja2</h4>
+                <p><strong>What it enables:</strong> Agents can create, store, and reuse prompt templates with dynamic variable rendering.</p>
+                <ul>
+                    <li><strong>Jinja2 Rendering:</strong> Full template engine with variables, conditionals, loops</li>
+                    <li><strong>Schema Validation:</strong> Ensure templates meet requirements before execution</li>
+                    <li><strong>A/B Testing:</strong> Store multiple instruction variations and compare results</li>
+                    <li><strong>Version Control Ready:</strong> Templates stored as files for git tracking</li>
+                    <li><strong>CRUD Operations:</strong> Add, edit, delete, retrieve templates programmatically</li>
+                </ul>
 
-                <h4><code>spawn_claude_agent</code></h4>
-                <p>Spawn specialized Claude sub-agents for delegation.</p>
-                <pre><code>spawn_claude_agent({
-  "task": "Research API design patterns for Rust",
-  "prompt_template": "research_agent"
-})</code></pre>
-                <span class="badge">Agent-to-Agent</span>
+                <h3>📊 Introspection (2 tools)</h3>
 
-                <h4><code>read_claude_agent_output</code></h4>
-                <p>Stream output from sub-agent sessions.</p>
-                <pre><code>read_claude_agent_output({
-  "agent_id": "agent-123"
-})</code></pre>
-                <span class="badge">Read-only</span>
+                <h4>🔍 Self-Observability</h4>
+                <p><strong>What it enables:</strong> Agents can track their own behavior, analyze patterns, and optimize workflows.</p>
+                <ul>
+                    <li><strong>Usage Statistics:</strong> See which tools are called most, success rates, execution patterns</li>
+                    <li><strong>Full Call History:</strong> Inspect recent invocations with complete arguments and responses</li>
+                    <li><strong>Performance Metrics:</strong> Execution time tracking for bottleneck identification</li>
+                    <li><strong>Failure Analysis:</strong> Spot recurring errors and debugging opportunities</li>
+                    <li><strong>Self-Improvement:</strong> LLM agents can analyze their own tool usage to improve efficiency</li>
+                </ul>
 
-                <p><em>And 3 more agent tools: <code>send_claude_agent_prompt</code>, <code>terminate_claude_agent_session</code>, <code>list_claude_agents</code></em></p>
+                <h3>⚙️ Process & Configuration (4 tools)</h3>
 
-                <h3>Prompt Management (4 tools)</h3>
+                <h4>🔧 System Control</h4>
+                <p><strong>Process Management:</strong></p>
+                <ul>
+                    <li><strong>List Processes:</strong> View running system processes with CPU/memory stats and filtering</li>
+                    <li><strong>Kill Process:</strong> Terminate processes by PID (with safety checks)</li>
+                </ul>
 
-                <h4><code>add_prompt</code></h4>
-                <p>Create reusable prompt templates with Jinja2.</p>
-                <pre><code>add_prompt({
-  "name": "code_review",
-  "template": "Review this code: {{ code }}",
-  "description": "Code review prompt"
-})</code></pre>
-                <span class="badge">Idempotent</span>
+                <p><strong>Runtime Configuration:</strong></p>
+                <ul>
+                    <li><strong>Get Config:</strong> Inspect current settings (line limits, thresholds, paths)</li>
+                    <li><strong>Set Config:</strong> Modify behavior at runtime without restart (fuzzy search threshold, file limits, etc.)</li>
+                    <li><strong>Dynamic Tuning:</strong> Agents can adjust their own configuration based on task requirements</li>
+                </ul>
 
-                <p><em>And 3 more prompt tools: <code>edit_prompt</code>, <code>delete_prompt</code>, <code>get_prompt</code></em></p>
-
-                <h3>Introspection (2 tools)</h3>
-
-                <h4><code>get_usage_stats</code></h4>
-                <p>Track tool usage and performance metrics.</p>
-                <pre><code>get_usage_stats({})</code></pre>
-                <span class="badge">Read-only</span>
-
-                <h4><code>get_recent_tool_calls</code></h4>
-                <p>Inspect recent tool invocations with full arguments.</p>
-                <pre><code>get_recent_tool_calls({
-  "limit": 10
-})</code></pre>
-                <span class="badge">Read-only</span>
-
-                <h3>Process Management (2 tools)</h3>
-
-                <h4><code>list_processes</code></h4>
-                <p>List system processes with filtering.</p>
-                <pre><code>list_processes({
-  "filter": "node"
-})</code></pre>
-                <span class="badge">Read-only</span>
-
-                <h4><code>kill_process</code></h4>
-                <p>Terminate processes by PID.</p>
-                <pre><code>kill_process({
-  "pid": 12345
-})</code></pre>
-                <span class="badge">Destructive</span>
-
-                <h3>Configuration (2 tools)</h3>
-
-                <h4><code>get_config</code></h4>
-                <p>Retrieve current configuration values.</p>
-                <pre><code>get_config({
-  "key": "file_read_line_limit"
-})</code></pre>
-                <span class="badge">Read-only</span>
-
-                <h4><code>set_config_value</code></h4>
-                <p>Modify configuration at runtime.</p>
-                <pre><code>set_config_value({
-  "key": "fuzzy_search_threshold",
-  "value": 0.9
-})</code></pre>
-                <span class="badge">Idempotent</span>
+                <h3>🔗 Git & GitHub (36 tools)</h3>
+                <p><strong>Full Repository Operations:</strong> Complete git workflow automation plus GitHub API integration for issues, PRs, releases, and more. (Detailed tool list available in source code)</p>
             </section>
 
             <section id="examples" class="section">
-                <h2>Examples</h2>
+                <h2>What Your Coding Agent Can Actually Do</h2>
+                <p>Real-world workflows that autonomous agents can execute with KODEGEN:</p>
 
-                <h3>Complete Workflow: Refactoring a Rust Project</h3>
-                <pre><code>// 1. Search for function to refactor
-start_search({
-  "pattern": "fn process_data",
-  "path": "src/"
-})
+                <h3>🔄 Autonomous Refactoring</h3>
+                <p><strong>The Task:</strong> Convert synchronous functions to async throughout a Rust project.</p>
+                <p><strong>What the agent does:</strong></p>
+                <ol>
+                    <li><strong>Search:</strong> Finds all function definitions matching the pattern across the entire codebase using streaming search</li>
+                    <li><strong>Read:</strong> Opens each file to understand context and dependencies</li>
+                    <li><strong>Edit:</strong> Makes surgical changes with fuzzy matching (handles whitespace variations automatically)</li>
+                    <li><strong>Test:</strong> Runs cargo test in a terminal session, monitoring output in real-time</li>
+                    <li><strong>Validate:</strong> Checks test output, rolls back if failures detected</li>
+                    <li><strong>Commit:</strong> Creates git commit when all tests pass</li>
+                </ol>
+                <p><strong>Why it works:</strong> Memory-efficient file reading means the agent can process massive codebases. Fuzzy matching recovers from minor mismatches. Terminal state detection knows exactly when tests finish.</p>
 
-// 2. Read the file
-read_file({
-  "file_path": "src/processor.rs"
-})
+                <h3>🕵️ Multi-Agent Code Analysis</h3>
+                <p><strong>The Task:</strong> Research best practices and generate production-ready error handling code.</p>
+                <p><strong>What happens:</strong></p>
+                <ol>
+                    <li><strong>Main Agent:</strong> Spawns a research specialist sub-agent with custom prompt: "Research Rust async error handling patterns in 2024"</li>
+                    <li><strong>Research Agent:</strong> Searches web, analyzes documentation, compiles findings into structured report</li>
+                    <li><strong>Main Agent:</strong> Spawns code generation specialist with findings from research agent</li>
+                    <li><strong>Code Agent:</strong> Generates example implementations following discovered best practices</li>
+                    <li><strong>Main Agent:</strong> Reviews output from both sub-agents, synthesizes final implementation</li>
+                </ol>
+                <p><strong>Why it works:</strong> N-depth delegation allows specialization. Real-time streaming means main agent sees progress. Each sub-agent can spawn its own helpers if needed.</p>
 
-// 3. Make the function async
-edit_block({
-  "file_path": "src/processor.rs",
-  "old_string": "fn process_data(input: &str) -> Result<Data>",
-  "new_string": "async fn process_data(input: &str) -> Result<Data>"
-})
+                <h3>🏗️ Architectural Design with Branching Thought</h3>
+                <p><strong>The Task:</strong> Design a scalable API architecture with exploration of alternatives.</p>
+                <p><strong>The reasoning process:</strong></p>
+                <ol>
+                    <li><strong>Initial Analysis:</strong> "Need to design a scalable API layer - considering performance, maintainability, team expertise"</li>
+                    <li><strong>Branch A:</strong> Explores REST API approach - analyzes versioning strategies, caching benefits, tooling ecosystem</li>
+                    <li><strong>Branch B:</strong> Explores GraphQL approach - analyzes federation patterns, over-fetching elimination, learning curve</li>
+                    <li><strong>Synthesis:</strong> Compares branches, discovers REST better fits due to caching requirements and team experience</li>
+                    <li><strong>Revision:</strong> Updates initial architecture decision with evidence from both branches</li>
+                </ol>
+                <p><strong>Why it works:</strong> Lock-free actor model means zero contention even with many branches. Auto-persistence means long planning sessions never lose progress. Revision support allows refinement as understanding deepens.</p>
 
-// 4. Run tests
-start_terminal_command({
-  "command": "cargo test"
-})
-
-// 5. Check output
-read_terminal_output({
-  "session_id": "terminal-123"
-})</code></pre>
-
-                <h3>Multi-Agent Research</h3>
-                <pre><code>// Spawn a research agent
-spawn_claude_agent({
-  "task": "Research best practices for error handling in Rust async code"
-})
-
-// Spawn another for code generation
-spawn_claude_agent({
-  "task": "Generate example error handling code based on research findings"
-})
-
-// Monitor agents
-list_claude_agents({})
-
-// Read results
-read_claude_agent_output({
-  "agent_id": "agent-001"
-})</code></pre>
-
-                <h3>Sequential Thinking for Architecture Planning</h3>
-                <pre><code>// Start thinking session
-sequential_thinking({
-  "session_id": "architecture-planning",
-  "thought": "Need to design a scalable API layer",
-  "thought_number": 1
-})
-
-// Branch to explore alternatives
-sequential_thinking({
-  "session_id": "architecture-planning",
-  "thought": "Option A: REST API with versioning",
-  "thought_number": 2,
-  "branch_from": 1
-})
-
-sequential_thinking({
-  "session_id": "architecture-planning",
-  "thought": "Option B: GraphQL with federation",
-  "thought_number": 3,
-  "branch_from": 1
-})
-
-// Revise earlier thinking
-sequential_thinking({
-  "session_id": "architecture-planning",
-  "thought": "Actually, REST is better for our use case due to caching",
-  "thought_number": 4,
-  "revises": 2
-})</code></pre>
+                <h3>🚀 Full-Stack Feature Implementation</h3>
+                <p><strong>The Task:</strong> Add authentication to an existing web application.</p>
+                <p><strong>End-to-end automation:</strong></p>
+                <ol>
+                    <li><strong>Planning:</strong> Uses sequential thinking to break down requirements into implementation steps</li>
+                    <li><strong>Research:</strong> Spawns sub-agent to research OAuth 2.0 best practices and security considerations</li>
+                    <li><strong>Database:</strong> Edits migration files, runs migrations via terminal, validates schema changes</li>
+                    <li><strong>Backend:</strong> Searches for route definitions, adds auth middleware with fuzzy-matched edits, implements JWT handling</li>
+                    <li><strong>Frontend:</strong> Adds login UI components, updates API client with auth headers</li>
+                    <li><strong>Testing:</strong> Runs unit tests in parallel terminal sessions, monitors output streams</li>
+                    <li><strong>Integration:</strong> Spawns test agent to write E2E tests covering auth flows</li>
+                    <li><strong>Documentation:</strong> Updates README with auth setup instructions</li>
+                    <li><strong>Review:</strong> Uses introspection tools to analyze what tools were used most, optimize future implementations</li>
+                </ol>
+                <p><strong>Why it works:</strong> The combination of all 75 tools creates truly autonomous capability. File operations handle code changes, terminal tools run tests/migrations, agent orchestration delegates specialized tasks, sequential thinking maintains coherent strategy across hundreds of steps.</p>
             </section>
 
             <section id="contributing" class="section">
